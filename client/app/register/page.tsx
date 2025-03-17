@@ -2,7 +2,7 @@
 
 import { Box, Heading, Text, Link as ChakraLink } from '@chakra-ui/react';
 import Link from 'next/link';
-import RegisterForm from '../../components/auth/RegisterForm';
+import RegisterForm from '../components/auth/RegisterForm';
 
 export default function RegisterPage() {
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import { Container, Heading } from '@chakra-ui/react';
-import TagList from '../../components/tags/TagList';
+import TagList from '../components/tags/TagList';
 
 export default function TagsPage() {
   return (

@@ -9,9 +9,9 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import axios from 'axios';
-import apiClient from '../../lib/axios';
-import QuestionCard from '../../components/questions/QuestionCard';
-import { useAuth } from '../../hooks/useAuth';
+import apiClient from '../lib/axios';
+import QuestionCard from '../components/questions/QuestionCard';
+import { useAuth } from '../hooks/useAuth';
 
 export default function BookmarksPage() {
   const [bookmarks, setBookmarks] = useState([]);
