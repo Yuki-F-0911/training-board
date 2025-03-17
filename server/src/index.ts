@@ -18,9 +18,27 @@ connectDB();
 // Create Express app
 const app = express();
 
+// CORS設定
+const corsOptions = {
+  origin: process.env.CLIENT_URL || 'https://training-board.vercel.app',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// ルートパスのハンドラー
+app.get('/', (req, res) => {
+  res.json({ message: 'トレーニング掲示板APIサーバーが正常に動作しています' });
+});
+
+// ヘルスチェックエンドポイント
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -38,7 +56,7 @@ mongoose
     User.findOneAndUpdate(
       { email: 'ai@training-board.com' },
       {
-        name: 'AI Assistant',
+        username: 'AI Assistant',
         email: 'ai@training-board.com',
         password: require('crypto').randomBytes(32).toString('hex'),
       },
@@ -47,6 +65,8 @@ mongoose
       console.log('AIユーザーを準備しました');
       // 自動投稿ジョブを開始
       startAutoPostJob().catch(console.error);
+    }).catch(error => {
+      console.error('AIユーザー作成エラー:', error);
     });
   })
   .catch((error) => {
