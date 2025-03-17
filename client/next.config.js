@@ -2,7 +2,7 @@
 const nextConfig = {
   /* config options here */
   experimental: {
-    appDir: true,
+    // appDirは最新のNext.jsではデフォルトになったため削除
   },
   distDir: '.next',
   transpilePackages: []
