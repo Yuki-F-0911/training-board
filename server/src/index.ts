@@ -20,7 +20,7 @@ const app = express();
 
 // CORS設定
 const corsOptions = {
-  origin: process.env.CLIENT_URL || 'https://training-board.vercel.app',
+  origin: ['https://training-board.com', 'https://www.training-board.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
