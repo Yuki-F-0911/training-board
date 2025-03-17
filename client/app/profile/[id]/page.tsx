@@ -1,11 +1,7 @@
-import ProfileClient from './ProfileClient';
-
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function Page({ params }: PageProps) {
-  return <ProfileClient id={params.id} />;
+export default function Page({ params }: { params: { id: string } }) {
+  return (
+    <div>
+      <h1>プロフィールページ: {params.id}</h1>
+    </div>
+  );
 } 
