@@ -1,7 +1,11 @@
-export default function Page({ params }: { params: { id: string } }) {
-  return (
-    <div>
-      <h1>プロフィールページ: {params.id}</h1>
-    </div>
-  );
+'use client';
+
+import { useParams } from 'next/navigation';
+import ProfileClient from './ProfileClient';
+
+export default function Page() {
+  const params = useParams();
+  const id = params.id as string;
+  
+  return <ProfileClient id={id} />;
 } 
