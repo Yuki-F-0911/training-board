@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { useAuth } from '../../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Question {
   _id: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { Container, Heading } from '@chakra-ui/react';
-import QuestionForm from '../../../components/questions/QuestionForm';
+import QuestionForm from '../../components/questions/QuestionForm';
 
 export default function NewQuestionPage() {
   return (

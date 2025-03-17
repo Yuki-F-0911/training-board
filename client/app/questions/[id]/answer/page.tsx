@@ -1,7 +1,7 @@
 'use client';
 
 import { Container, Heading } from '@chakra-ui/react';
-import AnswerForm from '../../../../components/answers/AnswerForm';
+import AnswerForm from '../../../components/answers/AnswerForm';
 
 export default function NewAnswerPage({
   params,

@@ -23,9 +23,9 @@ import {
 } from '@chakra-ui/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
-import apiClient from '../../lib/axios';
-import QuestionCard from '../../components/questions/QuestionCard';
-import { useAuth } from '../../hooks/useAuth';
+import apiClient from '../lib/axios';
+import QuestionCard from '../components/questions/QuestionCard';
+import { useAuth } from '../hooks/useAuth';
 import { ChevronDownIcon, SearchIcon } from '@chakra-ui/icons';
 
 interface Question {
