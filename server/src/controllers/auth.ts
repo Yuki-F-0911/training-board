@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { User } from '../models/User';
-import { generateToken } from '../middleware/auth';
+import { generateToken, AuthRequest } from '../middleware/auth';
 
 // @desc    ユーザー登録
 // @route   POST /api/auth/register
@@ -27,7 +27,7 @@ export const register = async (req: Request, res: Response) => {
         _id: user._id,
         username: user.username,
         email: user.email,
-        token: generateToken(user._id),
+        token: generateToken(user._id.toString()),
       });
     }
   } catch (error: any) {
@@ -58,7 +58,7 @@ export const login = async (req: Request, res: Response) => {
       _id: user._id,
       username: user.username,
       email: user.email,
-      token: generateToken(user._id),
+      token: generateToken(user._id.toString()),
     });
   } catch (error: any) {
     res.status(400).json({ message: error.message });
@@ -68,8 +68,12 @@ export const login = async (req: Request, res: Response) => {
 // @desc    現在のユーザー情報の取得
 // @route   GET /api/auth/me
 // @access  Private
-export const getMe = async (req: Request, res: Response) => {
+export const getMe = async (req: AuthRequest, res: Response) => {
   try {
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
+    }
+    
     const user = await User.findById(req.user._id).select('-password');
     res.json(user);
   } catch (error: any) {

@@ -1,57 +1,53 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 import { IUser } from './User';
 import { IQuestion } from './Question';
 
-export interface IAnswer {
+export interface IAnswer extends Document {
   content: string;
-  author: mongoose.Types.ObjectId | IUser;
-  question: mongoose.Types.ObjectId | IQuestion;
+  author: mongoose.Types.ObjectId;
+  question: mongoose.Types.ObjectId;
   upvotes: mongoose.Types.ObjectId[];
   downvotes: mongoose.Types.ObjectId[];
-  isAccepted: boolean;
-  isAIGenerated: boolean;
+  accepted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const answerSchema = new mongoose.Schema<IAnswer>(
+const answerSchema = new Schema(
   {
     content: {
       type: String,
       required: [true, '回答内容は必須です'],
       trim: true,
-      minlength: [20, '回答内容は20文字以上である必要があります'],
     },
     author: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
     question: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'Question',
       required: true,
     },
-    upvotes: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    }],
-    downvotes: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-    }],
-    isAccepted: {
-      type: Boolean,
-      default: false,
-    },
-    isAIGenerated: {
+    upvotes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    downvotes: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    accepted: {
       type: Boolean,
       default: false,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 // インデックスの作成

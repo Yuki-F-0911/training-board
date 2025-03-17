@@ -1,9 +1,12 @@
 import { Request, Response } from 'express';
 import { Answer } from '../models/Answer';
 import { Question } from '../models/Question';
+import mongoose from 'mongoose';
 
 interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    _id: string;
+  };
 }
 
 // @desc    回答の作成
@@ -18,6 +21,10 @@ export const createAnswer = async (req: AuthRequest, res: Response) => {
     const question = await Question.findById(questionId);
     if (!question) {
       return res.status(404).json({ message: '質問が見つかりません' });
+    }
+
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
     }
 
     const answer = await Answer.create({
@@ -77,6 +84,10 @@ export const updateAnswer = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: '回答が見つかりません' });
     }
 
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
+    }
+
     // 回答の作成者かどうかを確認
     if (answer.author.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'この操作を実行する権限がありません' });
@@ -103,6 +114,10 @@ export const deleteAnswer = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: '回答が見つかりません' });
     }
 
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
+    }
+
     // 回答の作成者かどうかを確認
     if (answer.author.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'この操作を実行する権限がありません' });
@@ -127,24 +142,28 @@ export const voteAnswer = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: '回答が見つかりません' });
     }
 
-    const userId = req.user._id;
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
+    }
+
+    const userId = new mongoose.Types.ObjectId(req.user._id);
 
     if (voteType === 'upvote') {
       // すでにいいねしている場合は取り消し
-      if (answer.upvotes.includes(userId)) {
-        answer.upvotes = answer.upvotes.filter(id => id.toString() !== userId.toString());
+      if (answer.upvotes.some(id => id.toString() === userId.toString())) {
+        answer.upvotes = answer.upvotes.filter((id: mongoose.Types.ObjectId) => id.toString() !== userId.toString());
       } else {
         // よくないねを取り消し、いいねを追加
-        answer.downvotes = answer.downvotes.filter(id => id.toString() !== userId.toString());
+        answer.downvotes = answer.downvotes.filter((id: mongoose.Types.ObjectId) => id.toString() !== userId.toString());
         answer.upvotes.push(userId);
       }
     } else if (voteType === 'downvote') {
       // すでによくないねしている場合は取り消し
-      if (answer.downvotes.includes(userId)) {
-        answer.downvotes = answer.downvotes.filter(id => id.toString() !== userId.toString());
+      if (answer.downvotes.some(id => id.toString() === userId.toString())) {
+        answer.downvotes = answer.downvotes.filter((id: mongoose.Types.ObjectId) => id.toString() !== userId.toString());
       } else {
         // いいねを取り消し、よくないねを追加
-        answer.upvotes = answer.upvotes.filter(id => id.toString() !== userId.toString());
+        answer.upvotes = answer.upvotes.filter((id: mongoose.Types.ObjectId) => id.toString() !== userId.toString());
         answer.downvotes.push(userId);
       }
     }
@@ -156,8 +175,8 @@ export const voteAnswer = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// @desc    回答を承認済みとしてマーク
-// @route   POST /api/answers/:id/accept
+// @desc    回答を承認する
+// @route   PUT /api/answers/:id/accept
 // @access  Private
 export const acceptAnswer = async (req: AuthRequest, res: Response) => {
   try {
@@ -165,6 +184,10 @@ export const acceptAnswer = async (req: AuthRequest, res: Response) => {
 
     if (!answer) {
       return res.status(404).json({ message: '回答が見つかりません' });
+    }
+
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
     }
 
     // 質問の作成者かどうかを確認
@@ -176,11 +199,11 @@ export const acceptAnswer = async (req: AuthRequest, res: Response) => {
     // 同じ質問の他の回答の承認を解除
     await Answer.updateMany(
       { question: answer.question },
-      { isAccepted: false }
+      { accepted: false }
     );
 
     // この回答を承認
-    answer.isAccepted = true;
+    answer.accepted = true;
     await answer.save();
 
     res.json(answer);

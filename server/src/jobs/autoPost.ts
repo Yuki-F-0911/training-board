@@ -1,7 +1,7 @@
 import { getGeminiModel } from '../config/gemini';
-import Question from '../models/question';
-import Answer from '../models/answer';
-import User from '../models/user';
+import { Question } from '../models/Question';
+import { Answer } from '../models/Answer';
+import { User } from '../models/User';
 
 const TOPICS = [
   'マラソンのペース配分',

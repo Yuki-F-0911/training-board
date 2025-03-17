@@ -1,8 +1,11 @@
 import { Request, Response } from 'express';
 import { Question } from '../models/Question';
+import mongoose from 'mongoose';
 
 interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    _id: string;
+  };
 }
 
 // @desc    質問の作成
@@ -12,34 +15,42 @@ export const createQuestion = async (req: AuthRequest, res: Response) => {
   try {
     const { title, content, tags } = req.body;
 
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
+    }
+
     const question = await Question.create({
       title,
       content,
-      tags,
       author: req.user._id,
+      tags: tags || [],
     });
 
-    res.status(201).json(question);
+    // 作成者情報を含めて返す
+    const populatedQuestion = await question.populate('author', 'username');
+
+    res.status(201).json(populatedQuestion);
   } catch (error: any) {
     res.status(400).json({ message: error.message });
   }
 };
 
-// @desc    全質問の取得
+// @desc    質問の一覧取得
 // @route   GET /api/questions
 // @access  Public
 export const getQuestions = async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 10, sort = '-createdAt', tags, search } = req.query;
+    const { page = 1, limit = 10, sort = '-createdAt', tag, search } = req.query;
 
+    // クエリの構築
     const query: any = {};
 
     // タグによるフィルタリング
-    if (tags) {
-      query.tags = { $in: (tags as string).split(',') };
+    if (tag) {
+      query.tags = tag;
     }
 
-    // 検索クエリ
+    // 検索クエリによるフィルタリング
     if (search) {
       query.$text = { $search: search as string };
     }
@@ -68,19 +79,14 @@ export const getQuestions = async (req: Request, res: Response) => {
 // @access  Public
 export const getQuestion = async (req: Request, res: Response) => {
   try {
-    const question = await Question.findById(req.params.id)
-      .populate('author', 'username')
-      .populate({
-        path: 'upvotes downvotes',
-        select: 'username',
-      });
+    const question = await Question.findById(req.params.id).populate('author', 'username');
 
     if (!question) {
       return res.status(404).json({ message: '質問が見つかりません' });
     }
 
     // 閲覧数を増やす
-    question.views += 1;
+    question.views = (question.views || 0) + 1;
     await question.save();
 
     res.json(question);
@@ -98,6 +104,10 @@ export const updateQuestion = async (req: AuthRequest, res: Response) => {
 
     if (!question) {
       return res.status(404).json({ message: '質問が見つかりません' });
+    }
+
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
     }
 
     // 質問の作成者かどうかを確認
@@ -129,6 +139,10 @@ export const deleteQuestion = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: '質問が見つかりません' });
     }
 
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
+    }
+
     // 質問の作成者かどうかを確認
     if (question.author.toString() !== req.user._id.toString()) {
       return res.status(401).json({ message: 'この操作を実行する権限がありません' });
@@ -153,11 +167,15 @@ export const voteQuestion = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: '質問が見つかりません' });
     }
 
-    const userId = req.user._id;
+    if (!req.user?._id) {
+      return res.status(401).json({ message: '認証が必要です' });
+    }
+
+    const userId = new mongoose.Types.ObjectId(req.user._id);
 
     if (voteType === 'upvote') {
       // すでにいいねしている場合は取り消し
-      if (question.upvotes.includes(userId)) {
+      if (question.upvotes.some(id => id.toString() === userId.toString())) {
         question.upvotes = question.upvotes.filter(id => id.toString() !== userId.toString());
       } else {
         // よくないねを取り消し、いいねを追加
@@ -166,7 +184,7 @@ export const voteQuestion = async (req: AuthRequest, res: Response) => {
       }
     } else if (voteType === 'downvote') {
       // すでによくないねしている場合は取り消し
-      if (question.downvotes.includes(userId)) {
+      if (question.downvotes.some(id => id.toString() === userId.toString())) {
         question.downvotes = question.downvotes.filter(id => id.toString() !== userId.toString());
       } else {
         // いいねを取り消し、よくないねを追加

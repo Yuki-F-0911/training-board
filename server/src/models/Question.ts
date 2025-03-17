@@ -1,10 +1,10 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 import { IUser } from './User';
 
-export interface IQuestion {
+export interface IQuestion extends Document {
   title: string;
   content: string;
-  author: mongoose.Types.ObjectId | IUser;
+  author: mongoose.Types.ObjectId;
   tags: string[];
   upvotes: mongoose.Types.ObjectId[];
   downvotes: mongoose.Types.ObjectId[];
@@ -14,30 +14,29 @@ export interface IQuestion {
   updatedAt: Date;
 }
 
-const questionSchema = new mongoose.Schema<IQuestion>(
+const questionSchema = new Schema(
   {
     title: {
       type: String,
-      required: [true, 'タイトルは必須です'],
+      required: [true, '質問タイトルは必須です'],
       trim: true,
-      minlength: [10, 'タイトルは10文字以上である必要があります'],
-      maxlength: [200, 'タイトルは200文字以下である必要があります'],
     },
     content: {
       type: String,
       required: [true, '質問内容は必須です'],
       trim: true,
-      minlength: [20, '質問内容は20文字以上である必要があります'],
     },
     author: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    tags: [{
-      type: String,
-      trim: true,
-    }],
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     upvotes: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -55,9 +54,7 @@ const questionSchema = new mongoose.Schema<IQuestion>(
       default: false,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 // インデックスの作成
