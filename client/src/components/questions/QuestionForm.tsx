@@ -14,7 +14,7 @@ import {
   Switch,
 } from '@chakra-ui/react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import apiClient from '../../lib/axios';
 
 const QuestionForm = () => {
   const [title, setTitle] = useState('');
@@ -31,10 +31,10 @@ const QuestionForm = () => {
 
     try {
       const endpoint = useAI
-        ? 'http://localhost:5000/api/ai/generate-question'
-        : 'http://localhost:5000/api/questions';
+        ? '/ai/generate-question'
+        : '/questions';
 
-      const response = await axios.post(endpoint, {
+      const response = await apiClient.post(endpoint, {
         title,
         content,
         tags: tags.split(',').map((tag) => tag.trim()),

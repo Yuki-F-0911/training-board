@@ -10,7 +10,7 @@ import {
   Badge,
   useToast,
 } from '@chakra-ui/react';
-import axios from 'axios';
+import apiClient from '../../lib/axios';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useRouter } from 'next/navigation';
@@ -46,7 +46,7 @@ const NotificationList = () => {
 
   const fetchNotifications = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/notifications');
+      const response = await apiClient.get('/notifications');
       setNotifications(response.data);
     } catch (error) {
       toast({
@@ -63,8 +63,8 @@ const NotificationList = () => {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await axios.patch(
-        `http://localhost:5000/api/notifications/${notificationId}/read`
+      await apiClient.patch(
+        `/notifications/${notificationId}/read`
       );
       setNotifications((prev) =>
         prev.map((n) =>

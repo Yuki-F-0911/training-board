@@ -15,7 +15,8 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import { format } from 'date-fns';
+import apiClient from '../../../lib/axios';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useAuth } from '../../../hooks/useAuth';
@@ -60,8 +61,8 @@ export default function QuestionDetailPage({
 
   const fetchQuestion = async () => {
     try {
-      const response = await axios.get(
-        `http://localhost:5000/api/questions/${params.id}`
+      const response = await apiClient.get(
+        `/questions/${params.id}`
       );
       setQuestion(response.data);
     } catch (error) {

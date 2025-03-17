@@ -11,7 +11,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import apiClient from '../../lib/axios';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +25,7 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await apiClient.post('/auth/login', {
         email,
         password,
       });

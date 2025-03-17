@@ -11,7 +11,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import apiClient from '../../lib/axios';
 
 const RegisterForm = () => {
   const [name, setName] = useState('');
@@ -26,7 +26,7 @@ const RegisterForm = () => {
     setIsLoading(true);
 
     try {
-      await axios.post('http://localhost:5000/api/auth/register', {
+      await apiClient.post('/auth/register', {
         name,
         email,
         password,

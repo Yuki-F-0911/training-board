@@ -12,7 +12,7 @@ import {
   Switch,
 } from '@chakra-ui/react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import apiClient from '../../lib/axios';
 
 interface AnswerFormProps {
   questionId: string;
@@ -31,10 +31,10 @@ const AnswerForm = ({ questionId }: AnswerFormProps) => {
 
     try {
       const endpoint = useAI
-        ? `http://localhost:5000/api/ai/generate-answer/${questionId}`
-        : `http://localhost:5000/api/questions/${questionId}/answers`;
+        ? `/ai/generate-answer/${questionId}`
+        : `/questions/${questionId}/answers`;
 
-      const response = await axios.post(endpoint, {
+      const response = await apiClient.post(endpoint, {
         content,
       });
 
