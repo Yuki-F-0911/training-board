@@ -19,7 +19,6 @@ import {
   StatGroup,
   useToast,
 } from '@chakra-ui/react';
-import axios from 'axios';
 import apiClient from '../../lib/axios';
 import QuestionCard from '../../components/questions/QuestionCard';
 import { useAuth } from '../../hooks/useAuth';
@@ -33,11 +32,11 @@ interface UserProfile {
   createdAt: string;
 }
 
-export default function ProfilePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+type Props = {
+  params: { id: string }
+}
+
+export default function ProfilePage({ params }: Props) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
