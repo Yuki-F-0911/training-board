@@ -19,9 +19,9 @@ import {
   StatGroup,
   useToast,
 } from '@chakra-ui/react';
-import apiClient from '../../lib/axios';
-import QuestionCard from '../../components/questions/QuestionCard';
-import { useAuth } from '../../hooks/useAuth';
+import apiClient from '../../../lib/axios';
+import QuestionCard from '../../../components/questions/QuestionCard';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface UserProfile {
   _id: string;
