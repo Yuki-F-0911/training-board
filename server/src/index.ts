@@ -20,7 +20,7 @@ const app = express();
 
 // CORS設定
 const corsOptions = {
-  origin: ['https://training-board.com', 'https://www.training-board.com'],
+  origin: '*', // 開発中は全てのオリジンを許可
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
