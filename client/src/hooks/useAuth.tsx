@@ -46,15 +46,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (email: string, password: string) => {
-    const response = await apiClient.post('/auth/login', {
-      email,
-      password,
-    });
-    const { token } = response.data;
-    localStorage.setItem('token', token);
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    await fetchUser();
-    return response.data;
+    try {
+      const response = await apiClient.post('/auth/login', {
+        email,
+        password,
+      });
+      
+      // トークンを保存
+      const { token } = response.data;
+      if (token) {
+        localStorage.setItem('token', token);
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        await fetchUser();
+        return response.data;
+      } else {
+        throw new Error('トークンが返されませんでした');
+      }
+    } catch (error) {
+      console.error('ログインエラー:', error);
+      throw error;
+    }
   };
 
   const register = async (name: string, email: string, password: string) => {

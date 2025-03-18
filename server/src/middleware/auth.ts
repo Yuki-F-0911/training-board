@@ -9,12 +9,10 @@ export interface AuthRequest extends Request {
 }
 
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  let token;
-
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       // トークンの取得
-      token = req.headers.authorization.split(' ')[1];
+      const token = req.headers.authorization.split(' ')[1];
 
       // トークンの検証
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'defaultsecret') as { id: string };

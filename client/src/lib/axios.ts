@@ -14,4 +14,12 @@ const apiClient = axios.create({
   withCredentials: false,
 });
 
+// クライアント側でLocalStorageからトークンを取得して設定
+if (typeof window !== 'undefined') {
+  const token = localStorage.getItem('token');
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  }
+}
+
 export default apiClient; 
