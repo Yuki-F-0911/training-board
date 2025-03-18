@@ -8,7 +8,8 @@
       "src": "src/index.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["src/**"]
+        "includeFiles": ["src/**"],
+        "maxLambdaSize": "15mb"
       }
     }
   ],
@@ -34,5 +35,9 @@
         "Access-Control-Allow-Headers": "Content-Type, Authorization"
       }
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "DEBUG": "*"
+  }
 } 
