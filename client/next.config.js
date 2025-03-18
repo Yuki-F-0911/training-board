@@ -6,7 +6,23 @@ const nextConfig = {
   },
   distDir: '.next',
   transpilePackages: [],
-  crossOrigin: 'anonymous'
+  crossOrigin: 'anonymous',
+  images: {
+    domains: ['training-board-server.vercel.app'],
+  },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig; 
