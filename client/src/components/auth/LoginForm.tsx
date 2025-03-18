@@ -23,6 +23,7 @@ const LoginForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    console.log('ログイン試行:', email);
 
     try {
       const response = await apiClient.post('/auth/login', {
@@ -30,7 +31,15 @@ const LoginForm = () => {
         password,
       });
 
-      localStorage.setItem('token', response.data.token);
+      console.log('ログイン成功 - ユーザーID:', response.data._id);
+      // トークンを保存
+      const token = response.data.token;
+      localStorage.setItem('token', token);
+      console.log('トークン保存完了');
+      
+      // APIクライアントのヘッダーにトークンを設定
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
       toast({
         title: 'ログイン成功',
         status: 'success',
@@ -39,6 +48,7 @@ const LoginForm = () => {
       });
       router.push('/questions');
     } catch (error: any) {
+      console.error('ログインエラー:', error.response?.data || error.message);
       toast({
         title: 'エラー',
         description: error.response?.data?.message || 'ログインに失敗しました',

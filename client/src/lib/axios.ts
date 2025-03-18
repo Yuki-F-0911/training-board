@@ -29,11 +29,36 @@ apiClient.interceptors.request.use(
       const token = localStorage.getItem('token');
       if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
+        console.log('Request with token to:', config.url);
+      } else {
+        console.log('No token available for request to:', config.url);
       }
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// レスポンスインターセプターを追加して、認証エラーをキャッチ
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log('Response from:', response.config.url, 'Status:', response.status);
+    return response;
+  },
+  (error) => {
+    console.error('API Error:', error.config?.url, error.response?.status, error.response?.data);
+    
+    // 401エラーの場合はトークンが無効な可能性がある
+    if (error.response?.status === 401) {
+      console.log('Authentication error detected, clearing token');
+      localStorage.removeItem('token');
+    }
+    
+    return Promise.reject(error);
+  }
 );
 
 export default apiClient; 

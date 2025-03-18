@@ -2,12 +2,15 @@ import { Request, Response } from 'express';
 import { User } from '../models/User';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../middleware/auth';
+import bcrypt from 'bcrypt';
 
 // JWTトークン生成
 const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'defaultsecret', {
+  const token = jwt.sign({ id }, process.env.JWT_SECRET || 'defaultsecret', {
     expiresIn: '30d',
   });
+  console.log('Generated token for user:', id);
+  return token;
 };
 
 // @desc    ユーザー登録
@@ -46,30 +49,39 @@ export const register = async (req: Request, res: Response) => {
 // @desc    ユーザーログイン
 // @route   POST /api/auth/login
 // @access  Public
-export const login = async (req: Request, res: Response) => {
+export const loginUser = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
   try {
-    const { email, password } = req.body;
-
-    // ユーザーの検索
+    // ユーザー検索
     const user = await User.findOne({ email });
+    
     if (!user) {
-      return res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
+      return res.status(401).json({ message: '認証に失敗しました' });
     }
 
-    // パスワードの検証
-    const isMatch = await user.comparePassword(password);
+    // パスワード照合
+    const isMatch = await bcrypt.compare(password, user.password);
+    
     if (!isMatch) {
-      return res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
+      return res.status(401).json({ message: '認証に失敗しました' });
     }
 
-    res.json({
+    // トークン生成とレスポンス
+    const token = generateToken(user._id.toString());
+    console.log('Login successful for:', email);
+    console.log('User ID:', user._id.toString());
+    console.log('Generated token:', token);
+    
+    res.status(200).json({
       _id: user._id,
-      username: user.username,
+      name: user.name,
       email: user.email,
-      token: generateToken(user._id.toString()),
+      token,
     });
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
   }
 };
 
