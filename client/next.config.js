@@ -5,7 +5,8 @@ const nextConfig = {
     // appDirは最新のNext.jsではデフォルトになったため削除
   },
   distDir: '.next',
-  transpilePackages: []
+  transpilePackages: [],
+  crossOrigin: 'anonymous'
 };
 
 module.exports = nextConfig; 
