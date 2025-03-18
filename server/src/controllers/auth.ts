@@ -1,6 +1,14 @@
 import { Request, Response } from 'express';
 import { User } from '../models/User';
-import { generateToken, AuthRequest } from '../middleware/auth';
+import jwt from 'jsonwebtoken';
+import { AuthRequest } from '../middleware/auth';
+
+// JWTトークン生成
+const generateToken = (id: string) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'defaultsecret', {
+    expiresIn: '30d',
+  });
+};
 
 // @desc    ユーザー登録
 // @route   POST /api/auth/register
@@ -8,7 +16,7 @@ import { generateToken, AuthRequest } from '../middleware/auth';
 export const register = async (req: Request, res: Response) => {
   try {
     const { username, email, password } = req.body;
-
+    
     // ユーザーの存在確認
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -70,13 +78,18 @@ export const login = async (req: Request, res: Response) => {
 // @access  Private
 export const getMe = async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user?._id) {
-      return res.status(401).json({ message: '認証が必要です' });
+    if (!req.user) {
+      return res.status(401).json({ message: '認証されていません' });
     }
     
     const user = await User.findById(req.user._id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'ユーザーが見つかりません' });
+    }
+    
     res.json(user);
   } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 }; 
