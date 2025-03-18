@@ -20,7 +20,7 @@ const app = express();
 
 // CORS設定
 const corsOptions = {
-  origin: '*', // 開発中は全てのオリジンを許可
+  origin: 'https://training-board-client2.vercel.app', // クライアントのURLを指定
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
