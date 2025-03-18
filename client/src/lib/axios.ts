@@ -11,7 +11,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false,
+  withCredentials: false, // CORSの'*'設定と一致させる
 });
 
 // クライアント側でLocalStorageからトークンを取得して設定
@@ -21,5 +21,19 @@ if (typeof window !== 'undefined') {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
 }
+
+// インターセプターを追加して、リクエスト前に毎回トークンを設定
+apiClient.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export default apiClient; 

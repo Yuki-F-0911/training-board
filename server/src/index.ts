@@ -20,7 +20,19 @@ const app = express();
 
 // CORS設定
 const corsOptions = {
-  origin: 'https://training-board-client2.vercel.app', // クライアントのURLを指定
+  origin: function(origin: any, callback: any) {
+    const allowedOrigins = [
+      'https://training-board-client2.vercel.app',
+      'https://training-board-client.vercel.app',
+      'http://localhost:3000'
+    ];
+    // originがnull（同一オリジン）の場合や許可リストにある場合は許可
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy violation'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

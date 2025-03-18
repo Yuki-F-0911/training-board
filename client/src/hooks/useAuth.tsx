@@ -35,11 +35,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUser = async () => {
     try {
+      // トークンを毎回確認して設定
+      const token = localStorage.getItem('token');
+      if (token) {
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      } else {
+        delete apiClient.defaults.headers.common['Authorization'];
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      
       const response = await apiClient.get('/auth/me');
+      console.log('User data response:', response.data); // デバッグ用
       setUser(response.data);
     } catch (error) {
+      console.error('Error fetching user:', error); // デバッグ用
       localStorage.removeItem('token');
       delete apiClient.defaults.headers.common['Authorization'];
+      setUser(null);
     } finally {
       setLoading(false);
     }
