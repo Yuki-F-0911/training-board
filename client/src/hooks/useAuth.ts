@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import apiClient from '../lib/axios';
 
@@ -17,7 +16,6 @@ export const useAuth = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchUser();
     } else {
@@ -31,7 +29,6 @@ export const useAuth = () => {
       setUser(response.data);
     } catch (error) {
       localStorage.removeItem('token');
-      delete axios.defaults.headers.common['Authorization'];
       delete apiClient.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
@@ -45,7 +42,6 @@ export const useAuth = () => {
     });
     const { token } = response.data;
     localStorage.setItem('token', token);
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     await fetchUser();
     return response.data;
@@ -62,7 +58,6 @@ export const useAuth = () => {
 
   const logout = () => {
     localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
     delete apiClient.defaults.headers.common['Authorization'];
     setUser(null);
     router.push('/login');

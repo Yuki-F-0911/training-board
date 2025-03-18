@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
+import apiClient from '../../src/lib/axios';
 
 interface User {
   _id: string;
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // ユーザー情報の取得
     const fetchUser = async () => {
       try {
-        const res = await axios.get('/api/auth/me', { withCredentials: true });
+        const res = await apiClient.get('/auth/me');
         setUser(res.data);
       } catch (error) {
         setUser(null);
@@ -41,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const res = await axios.post('/api/auth/login', { email, password }, { withCredentials: true });
+      const res = await apiClient.post('/auth/login', { email, password });
       setUser(res.data.user);
     } catch (error) {
       throw error;
@@ -50,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const res = await axios.post('/api/auth/register', { name, email, password }, { withCredentials: true });
+      const res = await apiClient.post('/auth/register', { name, email, password });
       setUser(res.data.user);
     } catch (error) {
       throw error;
@@ -59,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout', {}, { withCredentials: true });
+      await apiClient.post('/auth/logout', {});
       setUser(null);
     } catch (error) {
       throw error;
