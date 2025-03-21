@@ -1,29 +1,28 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
-export interface IBookmark extends mongoose.Document {
-  user: mongoose.Types.ObjectId;
-  question: mongoose.Types.ObjectId;
+export interface IBookmark extends Document {
+  user: mongoose.Schema.Types.ObjectId;
+  question: mongoose.Schema.Types.ObjectId;
   createdAt: Date;
 }
 
-const bookmarkSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
+const BookmarkSchema: Schema = new Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    question: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Question',
+      required: true,
+    },
   },
-  question: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Question',
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  { timestamps: true }
+);
 
-// ユーザーと質問の組み合わせでユニークにする
-bookmarkSchema.index({ user: 1, question: 1 }, { unique: true });
+// ユーザーとクエスチョンの組み合わせでユニーク制約
+BookmarkSchema.index({ user: 1, question: 1 }, { unique: true });
 
-export default mongoose.model<IBookmark>('Bookmark', bookmarkSchema); 
+export const Bookmark = mongoose.model<IBookmark>('Bookmark', BookmarkSchema); 

@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/error';
 import authRoutes from './routes/auth';
 import questionRoutes from './routes/questions';
 import aiRoutes from './routes/ai';
+import bookmarkRoutes from './routes/bookmarks';
 import { startAutoPostJob } from './jobs/autoPost';
 
 // Load environment variables
@@ -92,6 +93,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/ai', aiRoutes);
 
 // データベース接続
