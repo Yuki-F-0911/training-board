@@ -11,46 +11,65 @@ export interface AuthRequest extends Request {
 export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
   let token;
 
-  // ヘッダーからトークンを取得
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
+  console.log('認証ミドルウェア開始, Headers:', JSON.stringify(req.headers));
+
+  try {
+    // ヘッダーからトークンを取得
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       // トークンを取得
       token = req.headers.authorization.split(' ')[1];
-      console.log('Received token:', token.substring(0, 15) + '...');  // セキュリティのため一部だけ表示
+      console.log('受信したトークン:', token.substring(0, 15) + '...');  // セキュリティのため一部だけ表示
 
-      // トークンの検証
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'defaultsecret') as jwt.JwtPayload;
-      console.log('Decoded token ID:', decoded.id);
-
-      if (!decoded || typeof decoded !== 'object' || !decoded.id) {
-        console.log('Invalid token format:', decoded);
-        return res.status(401).json({ message: 'トークンの形式が無効です' });
+      if (!token || token === 'null' || token === 'undefined') {
+        console.log('無効なトークン:', token);
+        return res.status(401).json({ message: 'トークンが無効です' });
       }
 
-      // ユーザー情報の取得（パスワードを除く）
-      const user = await User.findById(decoded.id).select('-password');
-      if (!user) {
-        console.log('User not found for id:', decoded.id);
-        return res.status(401).json({ message: 'ユーザーが見つかりません' });
-      }
+      try {
+        // トークンの検証
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'defaultsecret') as jwt.JwtPayload;
+        console.log('デコードされたトークンID:', decoded.id);
 
-      console.log('Authentication successful for user:', user._id.toString());
-      // リクエストにユーザー情報を追加
-      req.user = { _id: user._id.toString() };
-      next();
-    } catch (error: unknown) {
-      console.error('Token verification error:', error);
-      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
-      return res.status(401).json({ message: '認証に失敗しました', error: errorMessage });
+        if (!decoded || typeof decoded !== 'object' || !decoded.id) {
+          console.log('トークン形式が無効:', decoded);
+          return res.status(401).json({ message: 'トークンの形式が無効です' });
+        }
+
+        // ユーザー情報の取得（パスワードを除く）
+        const user = await User.findById(decoded.id).select('-password');
+        if (!user) {
+          console.log('ユーザーが見つかりません:', decoded.id);
+          return res.status(401).json({ message: 'ユーザーが見つかりません' });
+        }
+
+        console.log('認証成功 - ユーザー:', user._id.toString());
+        // リクエストにユーザー情報を追加
+        req.user = { _id: user._id.toString() };
+        next();
+      } catch (jwtError) {
+        console.error('JWT検証エラー:', jwtError);
+        return res.status(401).json({ 
+          message: '認証に失敗しました', 
+          error: jwtError instanceof Error ? jwtError.message : '不明なエラー' 
+        });
+      }
+    } else {
+      console.log('トークンが提供されていません. ヘッダー:', JSON.stringify(req.headers));
+      return res.status(401).json({ message: 'Authorizationヘッダーにトークンがありません' });
     }
-  } else {
-    console.log('No token provided. Headers:', JSON.stringify(req.headers));
-    return res.status(401).json({ message: 'トークンがありません' });
+  } catch (error) {
+    console.error('認証ミドルウェアの予期しないエラー:', error);
+    return res.status(500).json({ 
+      message: '認証処理中にエラーが発生しました', 
+      error: error instanceof Error ? error.message : '不明なエラー' 
+    });
   }
 };
 
 export const generateToken = (id: string) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'defaultsecret', {
+  const token = jwt.sign({ id }, process.env.JWT_SECRET || 'defaultsecret', {
     expiresIn: '30d',
   });
+  console.log(`トークン生成: ユーザーID=${id}, トークン=${token.substring(0, 15)}...`);
+  return token;
 }; 

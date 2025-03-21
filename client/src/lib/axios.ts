@@ -6,12 +6,14 @@ const API_URL =
     ? 'https://training-board-server.vercel.app/api' 
     : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+console.log('API URL設定:', API_URL);
+
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // CORSの'*'設定と一致させる
+  withCredentials: true, // クロスサイトリクエストでもCookieを送信
 });
 
 // クライアント側でLocalStorageからトークンを取得して設定
@@ -19,6 +21,9 @@ if (typeof window !== 'undefined') {
   const token = localStorage.getItem('token');
   if (token) {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('初期化時にトークンを設定:', token.substring(0, 10) + '...');
+  } else {
+    console.log('初期化時にトークンがありません');
   }
 }
 
@@ -49,7 +54,13 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Error:', error.config?.url, error.response?.status, error.response?.data);
+    // 詳細なエラーログ
+    console.error(
+      'API Error:', 
+      error.config?.url, 
+      'Status:', error.response?.status, 
+      'Data:', JSON.stringify(error.response?.data || {})
+    );
     
     // 401エラーの場合はトークンが無効な可能性がある
     if (error.response?.status === 401) {

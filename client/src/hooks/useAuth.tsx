@@ -24,33 +24,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
+    console.log('AuthProvider初期化');
+    checkUserAuthentication();
   }, []);
 
-  const fetchUser = async () => {
+  const checkUserAuthentication = async () => {
     try {
-      // トークンを毎回確認して設定
       const token = localStorage.getItem('token');
-      if (token) {
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      } else {
-        delete apiClient.defaults.headers.common['Authorization'];
-        setUser(null);
+      
+      // デバッグログ追加
+      console.log('保存されているトークン:', token ? `${token.substring(0, 10)}...` : 'なし');
+      
+      if (!token) {
+        console.log('トークンがないため未認証状態');
         setLoading(false);
         return;
       }
+
+      // トークンを設定
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('トークンをヘッダーに設定');
       
+      await fetchUser();
+    } catch (error) {
+      console.error('認証チェックエラー:', error);
+      setLoading(false);
+    }
+  };
+
+  const fetchUser = async () => {
+    try {
+      console.log('ユーザー情報取得リクエスト送信');
       const response = await apiClient.get('/auth/me');
-      console.log('User data response:', response.data); // デバッグ用
+      console.log('ユーザー情報取得成功:', response.data);
       setUser(response.data);
     } catch (error) {
-      console.error('Error fetching user:', error); // デバッグ用
+      console.error('ユーザー情報取得エラー:', error);
+      // トークンをクリア
       localStorage.removeItem('token');
       delete apiClient.defaults.headers.common['Authorization'];
       setUser(null);
@@ -61,14 +71,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('ログインリクエスト送信:', email);
       const response = await apiClient.post('/auth/login', {
         email,
         password,
       });
       
+      console.log('ログイン成功:', response.data);
       // トークンを保存
       const { token } = response.data;
       if (token) {
+        console.log('トークンを保存:', token.substring(0, 10) + '...');
         localStorage.setItem('token', token);
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         await fetchUser();
@@ -84,11 +97,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = async (username: string, email: string, password: string) => {
     try {
+      console.log('ユーザー登録リクエスト送信:', email);
       const response = await apiClient.post('/auth/register', {
         username,
         email,
         password,
       });
+      console.log('ユーザー登録成功:', response.data);
       return response.data;
     } catch (error) {
       console.error('登録エラー:', error);
@@ -97,6 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
+    console.log('ログアウト実行');
     localStorage.removeItem('token');
     delete apiClient.defaults.headers.common['Authorization'];
     setUser(null);
