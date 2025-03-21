@@ -31,6 +31,8 @@ const corsOptions = {
     const allowedOrigins = [
       'https://training-board-client2.vercel.app',
       'https://training-board-client.vercel.app',
+      'https://training-board-esqa6ufxt-yuk-futamis-projects.vercel.app',
+      'https://training-board.vercel.app',
       'http://localhost:3000'
     ];
     // originがnull（同一オリジン）の場合や許可リストにある場合は許可

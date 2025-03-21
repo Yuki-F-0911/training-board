@@ -104,6 +104,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         password,
       });
       console.log('ユーザー登録成功:', response.data);
+      
+      // 登録成功時にトークンも保存
+      const { token } = response.data;
+      if (token) {
+        console.log('登録後のトークンを保存:', token.substring(0, 10) + '...');
+        localStorage.setItem('token', token);
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        await fetchUser();
+      }
+      
       return response.data;
     } catch (error) {
       console.error('登録エラー:', error);
