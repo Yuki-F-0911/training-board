@@ -1,11 +1,16 @@
 import express from 'express';
-import { register, loginUser, getMe } from '../controllers/auth';
+import { registerUser, loginUser, getCurrentUser } from '../controllers/auth';
 import { protect } from '../middleware/auth';
 
 const router = express.Router();
 
-router.post('/register', register);
+// ユーザー登録エンドポイント
+router.post('/register', registerUser);
+
+// ログインエンドポイント
 router.post('/login', loginUser);
-router.get('/me', protect as express.RequestHandler, getMe as express.RequestHandler);
+
+// 現在ログイン中のユーザー情報取得エンドポイント
+router.get('/me', protect, getCurrentUser);
 
 export default router; 

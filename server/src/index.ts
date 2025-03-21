@@ -25,31 +25,14 @@ try {
 // Create Express app
 const app = express();
 
-// CORS設定
-const corsOptions = {
-  origin: function(origin: any, callback: any) {
-    const allowedOrigins = [
-      'https://training-board-client2.vercel.app',
-      'https://training-board-client.vercel.app',
-      'https://training-board-esqa6ufxt-yuk-futamis-projects.vercel.app',
-      'https://training-board.vercel.app',
-      'http://localhost:3000'
-    ];
-    // originがnull（同一オリジン）の場合や許可リストにある場合は許可
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('CORS拒否: ', origin);
-      callback(new Error('CORS policy violation'));
-    }
-  },
-  credentials: true,
+// CORS設定 - ワイルドカードを使用して簡素化
+app.use(cors({
+  origin: '*', // すべてのオリジンを許可
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-};
+}));
 
 // Middleware
-app.use(cors(corsOptions));
 app.use(express.json());
 
 // エラーハンドリングのミドルウェア - 非同期エラー向け
@@ -146,3 +129,5 @@ try {
 } catch (error: unknown) {
   console.error('サーバー起動エラー:', error);
 } 
+
+export default app; 
