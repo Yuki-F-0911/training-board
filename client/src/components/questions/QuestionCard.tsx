@@ -21,13 +21,13 @@ interface QuestionCardProps {
     _id: string;
     title: string;
     content: string;
-    tags: string[];
-    author: {
-      username: string;
-      email: string;
+    tags?: string[];
+    author?: {
+      username?: string;
+      email?: string;
     };
     createdAt: string;
-    answersCount: number;
+    answersCount?: number;
     isBookmarked: boolean;
   };
   onBookmarkToggle: (questionId: string, isBookmarked: boolean) => void;
@@ -42,6 +42,10 @@ const QuestionCard = ({ question, onBookmarkToggle }: QuestionCardProps) => {
       onBookmarkToggle(question._id, question.isBookmarked);
     }
   };
+
+  // タグ配列の安全なアクセス
+  const tags = question?.tags || [];
+  const answersCount = question?.answersCount || 0;
 
   return (
     <Link href={`/questions/${question._id}`}>
@@ -75,16 +79,18 @@ const QuestionCard = ({ question, onBookmarkToggle }: QuestionCardProps) => {
             <Text noOfLines={2} mb={4} color="gray.600">
               {question.content}
             </Text>
-            <HStack spacing={2} mb={4}>
-              {question.tags.map((tag) => (
-                <Tag key={tag} size="sm" colorScheme="blue">
-                  {tag}
-                </Tag>
-              ))}
-            </HStack>
+            {tags.length > 0 && (
+              <HStack spacing={2} mb={4}>
+                {tags.map((tag) => (
+                  <Tag key={tag} size="sm" colorScheme="blue">
+                    {tag}
+                  </Tag>
+                ))}
+              </HStack>
+            )}
           </Box>
           <Text color="gray.500" fontSize="sm" whiteSpace="nowrap">
-            回答 {question.answersCount}件
+            回答 {answersCount}件
           </Text>
         </Flex>
         <Flex justifyContent="space-between" alignItems="center">
