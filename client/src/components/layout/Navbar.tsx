@@ -33,7 +33,7 @@ export default function Navbar() {
                 <MenuItem onClick={() => router.push('/bookmarks')}>
                   ブックマーク一覧
                 </MenuItem>
-                <MenuItem onClick={() => router.push(`/profile/${user._id}`)}>
+                <MenuItem onClick={() => router.push(`/profile/${user.id}`)}>
                   プロフィール
                 </MenuItem>
                 <MenuItem onClick={logout}>

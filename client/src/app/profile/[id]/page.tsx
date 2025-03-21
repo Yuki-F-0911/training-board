@@ -26,7 +26,7 @@ import { useAuth } from '../../../hooks/useAuth';
 
 interface UserProfile {
   _id: string;
-  name: string;
+  username: string;
   email: string;
   questions: any[];
   answers: any[];
@@ -74,9 +74,9 @@ export default function ProfilePage({
     <Container maxW="container.lg" py={8}>
       <Box mb={8}>
         <VStack spacing={4} align="center">
-          <Avatar size="2xl" name={profile.name} />
-          <Heading size="lg">{profile.name}</Heading>
-          {user?._id === profile._id && (
+          <Avatar size="2xl" name={profile.username} />
+          <Heading size="lg">{profile.username}</Heading>
+          {user?.id === profile._id && (
             <Text color="gray.500">{profile.email}</Text>
           )}
         </VStack>
