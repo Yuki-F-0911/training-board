@@ -4,7 +4,7 @@ import apiClient from '../lib/axios';
 
 interface User {
   _id: string;
-  name: string;
+  username: string;
   email: string;
 }
 
@@ -12,7 +12,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<any>;
-  register: (name: string, email: string, password: string) => Promise<any>;
+  register: (username: string, email: string, password: string) => Promise<any>;
   logout: () => void;
 }
 
@@ -82,13 +82,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    const response = await apiClient.post('/auth/register', {
-      name,
-      email,
-      password,
-    });
-    return response.data;
+  const register = async (username: string, email: string, password: string) => {
+    try {
+      const response = await apiClient.post('/auth/register', {
+        username,
+        email,
+        password,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('登録エラー:', error);
+      throw error;
+    }
   };
 
   const logout = () => {

@@ -11,7 +11,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useRouter } from 'next/navigation';
-import apiClient from '../../lib/axios';
+import { useAuth } from '../../hooks/useAuth';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +19,7 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
   const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,19 +27,8 @@ const LoginForm = () => {
     console.log('ログイン試行:', email);
 
     try {
-      const response = await apiClient.post('/auth/login', {
-        email,
-        password,
-      });
-
-      console.log('ログイン成功 - ユーザーID:', response.data._id);
-      // トークンを保存
-      const token = response.data.token;
-      localStorage.setItem('token', token);
-      console.log('トークン保存完了');
-      
-      // APIクライアントのヘッダーにトークンを設定
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      await login(email, password);
+      console.log('ログイン成功');
       
       toast({
         title: 'ログイン成功',

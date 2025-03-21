@@ -24,7 +24,7 @@ export default function Navbar() {
           {user ? (
             <Menu>
               <MenuButton as={Button}>
-                {user.name}
+                {user.username}
               </MenuButton>
               <MenuList>
                 <MenuItem onClick={() => router.push('/questions/new')}>
