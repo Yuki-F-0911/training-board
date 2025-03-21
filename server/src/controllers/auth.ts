@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { User } from '../models/User';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../middleware/auth';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 // JWTトークン生成
 const generateToken = (id: string) => {
@@ -75,7 +75,7 @@ export const loginUser = async (req: Request, res: Response) => {
     
     res.status(200).json({
       _id: user._id,
-      name: user.name,
+      name: user.username,
       email: user.email,
       token,
     });

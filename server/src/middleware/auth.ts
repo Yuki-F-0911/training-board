@@ -38,9 +38,10 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       // リクエストにユーザー情報を追加
       req.user = { _id: user._id.toString() };
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Token verification error:', error);
-      return res.status(401).json({ message: '認証に失敗しました', error: error.message });
+      const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+      return res.status(401).json({ message: '認証に失敗しました', error: errorMessage });
     }
   } else {
     console.log('No token provided. Headers:', JSON.stringify(req.headers));
