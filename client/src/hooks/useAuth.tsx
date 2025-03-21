@@ -30,9 +30,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     console.log('AuthProvider: 初期認証チェック実行');
     checkUserAuthentication()
-      .then(() => {
+      .then((authenticated) => {
         setLoading(false);
-        console.log('AuthProvider: 初期認証チェック完了');
+        console.log('AuthProvider: 初期認証チェック完了', authenticated ? '認証済み' : '未認証');
       })
       .catch((error) => {
         console.error('AuthProvider: 初期認証チェックエラー', error);
@@ -51,6 +51,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         try {
           token = localStorage.getItem('token');
           console.log('トークン存在確認:', token ? 'トークンあり' : 'トークンなし');
+          
+          if (token) {
+            // ヘッダーに明示的にトークンを設定
+            apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            console.log('トークンをヘッダーに設定:', token.substring(0, 10) + '...');
+          }
         } catch (e) {
           console.error('localStorage アクセスエラー:', e);
         }
@@ -102,6 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error('localStorage トークン削除エラー:', e);
           }
         }
+        delete apiClient.defaults.headers.common['Authorization'];
       }
       
       setUser(null);
@@ -122,6 +129,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // レスポンスからユーザー情報とトークンを取得
       const { user, token } = response.data;
       
+      if (!token) {
+        throw new Error('サーバーからトークンが返されていません');
+      }
+      
       // トークンをローカルストレージに保存
       if (typeof window !== 'undefined') {
         try {
@@ -134,10 +145,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // ヘッダーにトークンを設定
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('login: Authorizationヘッダーに設定完了');
       
       // ユーザー情報を直接設定（fetchUser不要）
       setUser(user);
       setIsAuthenticated(true);
+      setLoading(false);
+      
+      // ログイン後にホームページにリダイレクト
+      router.push('/');
     } catch (error: any) {
       console.error('login エラー:', 
         error.response ? {
@@ -145,9 +161,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           data: error.response.data
         } : error.message
       );
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
@@ -163,6 +178,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // レスポンスからユーザー情報とトークンを取得
       const { user, token } = response.data;
       
+      if (!token) {
+        throw new Error('サーバーからトークンが返されていません');
+      }
+      
       // トークンをローカルストレージに保存
       if (typeof window !== 'undefined') {
         try {
@@ -175,10 +194,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // ヘッダーにトークンを設定
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('register: Authorizationヘッダーに設定完了');
       
       // ユーザー情報を直接設定（fetchUser不要）
       setUser(user);
       setIsAuthenticated(true);
+      setLoading(false);
+      
+      // 登録後にホームページにリダイレクト
+      router.push('/');
     } catch (error: any) {
       console.error('register エラー:', 
         error.response ? {
@@ -186,9 +210,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           data: error.response.data
         } : error.message
       );
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 

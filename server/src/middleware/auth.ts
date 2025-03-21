@@ -28,17 +28,27 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       try {
         // トークンの検証
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'defaultsecret') as jwt.JwtPayload;
-        console.log('デコードされたトークンID:', decoded.id);
+        console.log('デコードされたトークン:', JSON.stringify(decoded));
 
-        if (!decoded || typeof decoded !== 'object' || !decoded.id) {
+        // ユーザーIDを抽出 - 新旧フォーマットに対応
+        let userId;
+        if (decoded.user && decoded.user.id) {
+          // 新フォーマット {user: {id: '...'}}
+          userId = decoded.user.id;
+          console.log('新フォーマットのユーザーID:', userId);
+        } else if (decoded.id) {
+          // 旧フォーマット {id: '...'}
+          userId = decoded.id;
+          console.log('旧フォーマットのユーザーID:', userId);
+        } else {
           console.log('トークン形式が無効:', decoded);
           return res.status(401).json({ message: 'トークンの形式が無効です' });
         }
 
         // ユーザー情報の取得（パスワードを除く）
-        const user = await User.findById(decoded.id).select('-password');
+        const user = await User.findById(userId).select('-password');
         if (!user) {
-          console.log('ユーザーが見つかりません:', decoded.id);
+          console.log('ユーザーが見つかりません:', userId);
           return res.status(401).json({ message: 'ユーザーが見つかりません' });
         }
 
@@ -67,9 +77,17 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
 };
 
 export const generateToken = (id: string) => {
-  const token = jwt.sign({ id }, process.env.JWT_SECRET || 'defaultsecret', {
+  // 新しいフォーマットでトークンを生成
+  const payload = {
+    user: {
+      id
+    }
+  };
+  
+  const token = jwt.sign(payload, process.env.JWT_SECRET || 'defaultsecret', {
     expiresIn: '30d',
   });
+  
   console.log(`トークン生成: ユーザーID=${id}, トークン=${token.substring(0, 15)}...`);
   return token;
 }; 
