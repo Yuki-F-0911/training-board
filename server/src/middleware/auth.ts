@@ -2,77 +2,71 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User';
 
+// 認証リクエストの拡張インターフェース
 export interface AuthRequest extends Request {
-  user?: {
-    _id: string;
+  user: {
+    id: string;
+    [key: string]: any;
   };
 }
 
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  let token;
+// 認証ミドルウェア
+export const auth = async (req: Request, res: Response, next: NextFunction) => {
+  // トークンを取得
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  
+  // リクエストのデバッグ情報
+  console.log('認証リクエスト:', {
+    path: req.path,
+    method: req.method,
+    hasToken: !!token
+  });
 
-  console.log('認証ミドルウェア開始, Headers:', JSON.stringify(req.headers));
+  if (!token) {
+    console.log('Authorizationヘッダーにトークンがありません');
+    return res.status(401).json({ message: 'Authorizationヘッダーにトークンがありません' });
+  }
 
   try {
-    // ヘッダーからトークンを取得
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      // トークンを取得
-      token = req.headers.authorization.split(' ')[1];
-      console.log('受信したトークン:', token.substring(0, 15) + '...');  // セキュリティのため一部だけ表示
-
-      if (!token || token === 'null' || token === 'undefined') {
-        console.log('無効なトークン:', token);
-        return res.status(401).json({ message: 'トークンが無効です' });
-      }
-
-      try {
-        // トークンの検証
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'defaultsecret') as jwt.JwtPayload;
-        console.log('デコードされたトークン:', JSON.stringify(decoded));
-
-        // ユーザーIDを抽出 - 新旧フォーマットに対応
-        let userId;
-        if (decoded.user && decoded.user.id) {
-          // 新フォーマット {user: {id: '...'}}
-          userId = decoded.user.id;
-          console.log('新フォーマットのユーザーID:', userId);
-        } else if (decoded.id) {
-          // 旧フォーマット {id: '...'}
-          userId = decoded.id;
-          console.log('旧フォーマットのユーザーID:', userId);
-        } else {
-          console.log('トークン形式が無効:', decoded);
-          return res.status(401).json({ message: 'トークンの形式が無効です' });
-        }
-
-        // ユーザー情報の取得（パスワードを除く）
-        const user = await User.findById(userId).select('-password');
-        if (!user) {
-          console.log('ユーザーが見つかりません:', userId);
-          return res.status(401).json({ message: 'ユーザーが見つかりません' });
-        }
-
-        console.log('認証成功 - ユーザー:', user._id.toString());
-        // リクエストにユーザー情報を追加
-        req.user = { _id: user._id.toString() };
-        next();
-      } catch (jwtError) {
-        console.error('JWT検証エラー:', jwtError);
-        return res.status(401).json({ 
-          message: '認証に失敗しました', 
-          error: jwtError instanceof Error ? jwtError.message : '不明なエラー' 
-        });
-      }
-    } else {
-      console.log('トークンが提供されていません. ヘッダー:', JSON.stringify(req.headers));
-      return res.status(401).json({ message: 'Authorizationヘッダーにトークンがありません' });
+    // トークンの検証
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret_key');
+    console.log('トークン検証成功:', typeof decoded);
+    
+    // トークンのペイロード形式を確認
+    if (typeof decoded !== 'object') {
+      throw new Error('無効なトークン形式');
     }
-  } catch (error) {
-    console.error('認証ミドルウェアの予期しないエラー:', error);
-    return res.status(500).json({ 
-      message: '認証処理中にエラーが発生しました', 
-      error: error instanceof Error ? error.message : '不明なエラー' 
-    });
+    
+    // 新しいフォーマット: { user: { id: '...' } }
+    if (decoded.user && decoded.user.id) {
+      (req as AuthRequest).user = decoded.user;
+      console.log('ユーザーID設定 (新形式):', decoded.user.id);
+    } 
+    // 旧フォーマット: { id: '...' }
+    else if (decoded.id) {
+      (req as AuthRequest).user = { id: decoded.id };
+      console.log('ユーザーID設定 (旧形式):', decoded.id);
+    }
+    // 無効なペイロード
+    else {
+      throw new Error('トークンにユーザーIDが含まれていません');
+    }
+
+    next();
+  } catch (error: unknown) {
+    console.error('トークン検証エラー:', error);
+    const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+    
+    // 詳細なエラーメッセージ
+    if (error instanceof jwt.JsonWebTokenError) {
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'トークンの有効期限が切れています' });
+      } else {
+        return res.status(401).json({ message: '無効なトークンです' });
+      }
+    }
+    
+    res.status(401).json({ message: '認証に失敗しました', error: errorMessage });
   }
 };
 

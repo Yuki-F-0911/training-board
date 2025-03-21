@@ -2,62 +2,58 @@ import { Request, Response } from 'express';
 import { User } from '../models/User';
 import jwt from 'jsonwebtoken';
 import { AuthRequest } from '../middleware/auth';
-import bcrypt from 'bcryptjs';
+import bcryptjs from 'bcryptjs';
 import mongoose from 'mongoose';
 
 // @desc    ユーザー登録
 // @route   POST /api/auth/register
 // @access  Public
 export const registerUser = async (req: Request, res: Response) => {
-  const { username, email, password } = req.body;
-
   try {
-    // 既存ユーザーのチェック
-    let user = await User.findOne({ email });
-    if (user) {
+    const { username, email, password } = req.body;
+
+    // 必須フィールドの確認
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'すべてのフィールドが必要です' });
+    }
+
+    // ユーザーが既に存在するかチェック
+    let existingUser = await User.findOne({ email });
+    if (existingUser) {
       return res.status(400).json({ message: 'このメールアドレスは既に登録されています' });
     }
 
-    // 新規ユーザー作成
-    user = new User({
+    // パスワードのハッシュ化
+    const salt = await bcryptjs.genSalt(10);
+    const hashedPassword = await bcryptjs.hash(password, salt);
+
+    // 新しいユーザーを作成
+    const user = new User({
       username,
       email,
-      password
+      password: hashedPassword,
     });
 
-    // パスワードのハッシュ化はUserモデルのpre-save hookで行われる
-
-    // ユーザーを保存
     await user.save();
+    
+    console.log(`新規ユーザー登録: ${email}, ID: ${user._id}`);
 
-    // JWTトークンの生成
-    const payload = {
-      user: {
-        id: user.id
-      }
-    };
-
-    const token = jwt.sign(
-      payload,
-      process.env.JWT_SECRET || 'defaultsecret',
-      { expiresIn: '24h' }
-    );
-
-    console.log(`新規ユーザー登録成功: ${user.id}, ${user.email}`);
-    console.log(`トークン発行: ${token.substring(0, 15)}...`);
+    // JWTトークンを生成
+    const token = generateToken(user);
 
     res.status(201).json({
-      message: 'ユーザー登録が完了しました',
+      message: 'ユーザー登録成功',
       user: {
-        _id: user.id,
+        id: user._id,
         username: user.username,
-        email: user.email
+        email: user.email,
       },
-      token
+      token,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('ユーザー登録エラー:', error);
-    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+    const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+    res.status(500).json({ message: '登録処理中にエラーが発生しました', error: errorMessage });
   }
 };
 
@@ -65,50 +61,44 @@ export const registerUser = async (req: Request, res: Response) => {
 // @route   POST /api/auth/login
 // @access  Public
 export const loginUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
-
   try {
+    const { email, password } = req.body;
+
+    // 必須フィールドの確認
+    if (!email || !password) {
+      return res.status(400).json({ message: 'メールアドレスとパスワードが必要です' });
+    }
+
     // ユーザーの検索
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
+      return res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
     }
 
     // パスワードの検証
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcryptjs.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
+      return res.status(401).json({ message: 'メールアドレスまたはパスワードが正しくありません' });
     }
 
-    // JWTトークンの生成
-    const payload = {
-      user: {
-        id: user.id
-      }
-    };
+    // JWTトークンを生成
+    const token = generateToken(user);
+    
+    console.log(`ユーザーログイン: ${email}, ID: ${user._id}, トークン: ${token.substring(0, 20)}...`);
 
-    const token = jwt.sign(
-      payload,
-      process.env.JWT_SECRET || 'defaultsecret',
-      { expiresIn: '24h' }
-    );
-
-    console.log(`ユーザーログイン成功: ${user.id}, ${user.email}`);
-    console.log(`トークン発行: ${token.substring(0, 15)}...`);
-
-    // トークンとユーザー情報を返す
     res.json({
-      message: 'ログインに成功しました',
+      message: 'ログイン成功',
       user: {
-        _id: user.id,
+        id: user._id,
         username: user.username,
-        email: user.email
+        email: user.email,
       },
-      token
+      token,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('ログインエラー:', error);
-    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+    const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+    res.status(500).json({ message: 'ログイン処理中にエラーが発生しました', error: errorMessage });
   }
 };
 
@@ -117,29 +107,46 @@ export const loginUser = async (req: Request, res: Response) => {
 // @access  Private
 export const getCurrentUser = async (req: AuthRequest, res: Response) => {
   try {
-    // req.userはauthミドルウェアで設定される
-    if (!req.user) {
-      return res.status(401).json({ message: '認証されていません' });
-    }
-
-    const userId = req.user._id;
-    
-    // ユーザーIDが有効なMongoDBのIDかチェック
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: '無効なユーザーIDです' });
-    }
-
-    // ユーザー情報の取得（パスワードを除く）
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
     
     if (!user) {
       return res.status(404).json({ message: 'ユーザーが見つかりません' });
     }
+    
+    console.log(`現在のユーザー情報取得: ID: ${user._id}`);
+    
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+      }
+    });
+  } catch (error: unknown) {
+    console.error('現在のユーザー情報取得エラー:', error);
+    const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+    res.status(500).json({ message: 'ユーザー情報の取得中にエラーが発生しました', error: errorMessage });
+  }
+};
 
-    console.log(`ユーザー情報取得成功: ${userId}`);
-    res.json(user);
+// トークン生成関数
+const generateToken = (user: any): string => {
+  const payload = {
+    user: {
+      id: user._id
+    }
+  };
+  
+  try {
+    const token = jwt.sign(
+      payload,
+      process.env.JWT_SECRET || 'default_secret_key',
+      { expiresIn: '7d' }
+    );
+    console.log(`トークン生成成功: ユーザーID ${user._id}, ペイロード:`, JSON.stringify(payload));
+    return token;
   } catch (error) {
-    console.error('ユーザー情報取得エラー:', error);
-    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+    console.error('トークン生成エラー:', error);
+    throw new Error('認証トークンの生成に失敗しました');
   }
 }; 

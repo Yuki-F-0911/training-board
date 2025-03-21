@@ -1,16 +1,22 @@
 import express from 'express';
 import { registerUser, loginUser, getCurrentUser } from '../controllers/auth';
-import { protect } from '../middleware/auth';
+import { auth } from '../middleware/auth';
 
 const router = express.Router();
 
-// ユーザー登録エンドポイント
+// @route   POST /api/auth/register
+// @desc    ユーザー登録
+// @access  Public
 router.post('/register', registerUser);
 
-// ログインエンドポイント
+// @route   POST /api/auth/login
+// @desc    ユーザーログイン、トークン取得
+// @access  Public
 router.post('/login', loginUser);
 
-// 現在ログイン中のユーザー情報取得エンドポイント
-router.get('/me', protect, getCurrentUser);
+// @route   GET /api/auth/me
+// @desc    現在のユーザー情報を取得
+// @access  Private
+router.get('/me', auth, getCurrentUser);
 
 export default router; 
