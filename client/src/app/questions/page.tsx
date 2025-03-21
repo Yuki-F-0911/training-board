@@ -67,7 +67,7 @@ export default function QuestionsPage() {
       const response = await apiClient.get(
         `/questions?${params.toString()}`
       );
-      setQuestions(response.data);
+      setQuestions(response.data || []);
     } catch (error) {
       toast({
         title: 'エラー',
@@ -76,6 +76,7 @@ export default function QuestionsPage() {
         duration: 3000,
         isClosable: true,
       });
+      setQuestions([]);
     } finally {
       setLoading(false);
     }
@@ -101,9 +102,12 @@ export default function QuestionsPage() {
       }
       
       // 質問リストの更新
-      setQuestions(questions.map((q: any) => 
-        q._id === questionId ? { ...q, isBookmarked: !isBookmarked } : q
-      ));
+      setQuestions((currentQuestions) => {
+        if (!currentQuestions) return [];
+        return currentQuestions.map((q: any) => 
+          q._id === questionId ? { ...q, isBookmarked: !isBookmarked } : q
+        );
+      });
 
       toast({
         title: isBookmarked ? 'ブックマークを解除しました' : 'ブックマークに追加しました',
@@ -189,13 +193,19 @@ export default function QuestionsPage() {
       </Box>
 
       <VStack spacing={4} align="stretch">
-        {questions.map((question: any) => (
-          <QuestionCard
-            key={question._id}
-            question={question}
-            onBookmarkToggle={handleBookmarkToggle}
-          />
-        ))}
+        {loading ? (
+          <Box textAlign="center" p={4}>読み込み中...</Box>
+        ) : questions && questions.length > 0 ? (
+          questions.map((question: any) => (
+            <QuestionCard
+              key={question._id}
+              question={question}
+              onBookmarkToggle={handleBookmarkToggle}
+            />
+          ))
+        ) : (
+          <Box textAlign="center" p={4}>質問が見つかりませんでした</Box>
+        )}
       </VStack>
     </Container>
   );

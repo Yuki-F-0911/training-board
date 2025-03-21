@@ -23,7 +23,7 @@ interface QuestionCardProps {
     content: string;
     tags: string[];
     author: {
-      name: string;
+      username: string;
       email: string;
     };
     createdAt: string;
@@ -89,8 +89,8 @@ const QuestionCard = ({ question, onBookmarkToggle }: QuestionCardProps) => {
         </Flex>
         <Flex justifyContent="space-between" alignItems="center">
           <HStack spacing={2}>
-            <Avatar size="sm" name={question.author.name} />
-            <Text fontSize="sm">{question.author.name}</Text>
+            <Avatar size="sm" name={question.author?.username || 'ユーザー'} />
+            <Text fontSize="sm">{question.author?.username || 'ユーザー'}</Text>
           </HStack>
           <Text fontSize="sm" color="gray.500">
             {formatDistanceToNow(new Date(question.createdAt), {

@@ -7,6 +7,7 @@ import {
   VStack,
   Text,
   useToast,
+  Box,
 } from '@chakra-ui/react';
 import axios from 'axios';
 import apiClient from '../../lib/axios';
@@ -22,13 +23,15 @@ export default function BookmarksPage() {
   useEffect(() => {
     if (user) {
       fetchBookmarks();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   const fetchBookmarks = async () => {
     try {
       const response = await apiClient.get('/bookmarks');
-      setBookmarks(response.data);
+      setBookmarks(response.data || []);
     } catch (error) {
       toast({
         title: 'エラー',
@@ -37,6 +40,7 @@ export default function BookmarksPage() {
         duration: 3000,
         isClosable: true,
       });
+      setBookmarks([]);
     } finally {
       setLoading(false);
     }
@@ -45,7 +49,10 @@ export default function BookmarksPage() {
   const handleBookmarkToggle = async (questionId: string, isBookmarked: boolean) => {
     try {
       await apiClient.delete(`/bookmarks/${questionId}`);
-      setBookmarks(bookmarks.filter((b: any) => b.question._id !== questionId));
+      setBookmarks((currentBookmarks) => {
+        if (!currentBookmarks) return [];
+        return currentBookmarks.filter((b: any) => b.question._id !== questionId);
+      });
       
       toast({
         title: 'ブックマークを解除しました',
@@ -79,14 +86,17 @@ export default function BookmarksPage() {
       </Heading>
 
       <VStack spacing={4} align="stretch">
-        {bookmarks.map((bookmark: any) => (
-          <QuestionCard
-            key={bookmark.question._id}
-            question={{ ...bookmark.question, isBookmarked: true }}
-            onBookmarkToggle={handleBookmarkToggle}
-          />
-        ))}
-        {bookmarks.length === 0 && (
+        {loading ? (
+          <Box textAlign="center" p={4}>読み込み中...</Box>
+        ) : bookmarks && bookmarks.length > 0 ? (
+          bookmarks.map((bookmark: any) => (
+            <QuestionCard
+              key={bookmark.question._id}
+              question={{ ...bookmark.question, isBookmarked: true }}
+              onBookmarkToggle={handleBookmarkToggle}
+            />
+          ))
+        ) : (
           <Text color="gray.500" textAlign="center">
             ブックマークした質問はありません
           </Text>
