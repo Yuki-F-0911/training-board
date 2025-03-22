@@ -25,9 +25,16 @@ try {
 // Create Express app
 const app = express();
 
-// CORS設定 - ワイルドカードを使用して簡素化
+// CORS設定 - クレデンシャル付きリクエストのための設定
 app.use(cors({
-  origin: '*', // すべてのオリジンを許可
+  origin: [
+    'https://training-board-client2.vercel.app',
+    'https://training-board-client.vercel.app',
+    'https://training-board-esqa6ufxt-yuk-futamis-projects.vercel.app',
+    'https://training-board.vercel.app',
+    'http://localhost:3000'
+  ],
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));

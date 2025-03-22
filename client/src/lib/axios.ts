@@ -2,36 +2,28 @@
 
 import axios from 'axios';
 
-// 環境変数からAPIのベースURLを取得するか、デフォルト値を使用
-const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = 'https://training-board-server.vercel.app/api';
 
-console.log('API URL設定:', baseURL);
+console.log('API URL設定:', API_URL);
 
-// axiosインスタンスの作成
-const api = axios.create({
-  baseURL,
-  timeout: 10000, // タイムアウト10秒
+const apiClient = axios.create({
+  baseURL: API_URL,
+  withCredentials: true, // CORS認証のためにクレデンシャルを含める
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // CORSリクエストでCookieを送信する
 });
 
-// リクエストインターセプター
-api.interceptors.request.use(
+// リクエストインターセプター - ヘッダーにトークンを追加
+apiClient.interceptors.request.use(
   (config) => {
-    // ブラウザ環境の場合のみローカルストレージからトークンを取得
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log(`トークンを設定しました: ${config.url}`);
-      } else {
-        console.log(`No token available for request to: ${config.url}`);
-      }
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('リクエストにトークンを追加:', config.url);
+    } else {
+      console.log(`No token available for request to: ${config.url}`);
     }
-    
     return config;
   },
   (error) => {
@@ -40,37 +32,27 @@ api.interceptors.request.use(
   }
 );
 
-// レスポンスインターセプター
-api.interceptors.response.use(
+// レスポンスインターセプター - エラーハンドリング
+apiClient.interceptors.response.use(
   (response) => {
-    console.log(`API成功: ${response.config?.url}`);
     return response;
   },
   (error) => {
-    const status = error.response?.status;
-    const data = error.response?.data;
-    
-    // 認証エラーの場合
-    if (status === 401) {
-      console.log('Authentication error detected, clearing token');
+    if (error.response) {
+      console.log(`API Error: ${error.config?.url} Status: ${error.response.status} Data:`, error.response.data);
       
-      if (typeof window !== 'undefined') {
+      // 401エラーの場合はトークンをクリア
+      if (error.response.status === 401) {
+        console.log('Authentication error detected, clearing token');
         localStorage.removeItem('token');
       }
-      
-      // 認証関連でないパスの場合にのみログインページへ遷移
-      const requestURL = error.config?.url;
-      if (requestURL && !requestURL.includes('/auth/')) {
-        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-          // ページ遷移についてはuseAuthに任せるため、ここでは行わない
-        }
-      }
+    } else if (error.request) {
+      console.log('API Error: No response received', error.request);
+    } else {
+      console.log('API Error:', error.message);
     }
-    
-    console.error(`API Error: ${error.config?.url} Status: ${status} Data:`, data || {});
-    
     return Promise.reject(error);
   }
 );
 
-export default api; 
+export default apiClient; 
