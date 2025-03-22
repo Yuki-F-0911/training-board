@@ -43,6 +43,12 @@ app.use(function(req, res, next) {
 // Content-Type設定
 app.use(express.json());
 
+// favicon.icoへのリクエストを処理
+app.get('/favicon.ico', (req, res) => {
+  console.log('Favicon.icoリクエスト受信');
+  res.status(204).end(); // 204 No Content
+});
+
 // エラーハンドリングのミドルウェア - 非同期エラー向け
 app.use((err: any, req: any, res: any, next: any) => {
   console.error('エラーハンドリングミドルウェア:', err);
