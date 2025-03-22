@@ -25,35 +25,22 @@ try {
 // Create Express app
 const app = express();
 
-// CORS設定 - すべてのオリジンを許可する
-app.use(cors({
-  origin: function(origin, callback) {
-    // オリジンなし（同一オリジン）またはVercel開発環境からのリクエストを許可
-    const allowedOrigins = [
-      'https://training-board-client2.vercel.app',
-      'https://training-board-client.vercel.app',
-      'https://training-board.vercel.app',
-      'https://training-board-esqa6ufxt-yuk-futamis-projects.vercel.app',
-      'http://localhost:3000'
-    ];
-    
-    console.log('CORS要求オリジン:', origin);
-    
-    // originがnull（同一オリジン）の場合や許可リストにある場合は許可
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      // 開発中は全てのオリジンを許可するオプション
-      callback(null, true);
-      // 本番環境では制限を厳しくする場合:
-      // callback(new Error('CORS policy violation'), false);
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// CORS設定 - 完全に緩める
+app.use(function(req, res, next) {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 
-// Middleware
+  // プリフライトリクエストへの対応
+  if (req.method === 'OPTIONS') {
+    console.log('プリフライトリクエスト検出:', req.headers.origin);
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// Content-Type設定
 app.use(express.json());
 
 // エラーハンドリングのミドルウェア - 非同期エラー向け

@@ -12,15 +12,24 @@ export interface AuthRequest extends Request {
 
 // 認証ミドルウェア
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
-  // トークンを取得
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  
+  // OPTIONSリクエストはプリフライトリクエストなので、常に成功レスポンスを返す
+  if (req.method === 'OPTIONS') {
+    console.log('OPTIONSリクエスト: プリフライト応答');
+    return res.status(200).end();
+  }
+
   // リクエストのデバッグ情報
   console.log('認証リクエスト:', {
     path: req.path,
     method: req.method,
-    hasToken: !!token
+    headers: {
+      authorization: req.headers.authorization ? 'あり' : 'なし',
+      origin: req.headers.origin || 'なし'
+    }
   });
+
+  // トークンを取得
+  const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
     console.log('Authorizationヘッダーにトークンがありません');
