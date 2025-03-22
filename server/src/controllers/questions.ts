@@ -1,33 +1,37 @@
 import { Request, Response } from 'express';
-import { Question } from '../models/Question';
 import mongoose from 'mongoose';
+import { Question } from '../models/Question';
+import { Answer } from '../models/Answer';
 import { AuthRequest } from '../middleware/auth';
 
-
-// @desc    質問の作成
+// @desc    質問を作成する
 // @route   POST /api/questions
 // @access  Private
-export const createQuestion = async (req: AuthRequest, res: Response) => {
+export const createQuestion = async (req: Request, res: Response) => {
   try {
     const { title, content, tags } = req.body;
-
-    if (!req.user?._id) {
-      return res.status(401).json({ message: '認証が必要です' });
+    
+    // ユーザーIDをチェック
+    const authReq = req as AuthRequest;
+    if (!authReq.user || !authReq.user.id) {
+      return res.status(401).json({ message: '認証されていません' });
     }
 
-    const question = await Question.create({
+    // 新しい質問を作成
+    const question = new Question({
       title,
       content,
-      author: req.user._id,
       tags: tags || [],
+      author: authReq.user.id,
     });
 
-    // 作成者情報を含めて返す
-    const populatedQuestion = await question.populate('author', 'username');
+    await question.save();
+    console.log(`新しい質問が作成されました: ID=${question._id}, タイトル="${title}"`);
 
-    res.status(201).json(populatedQuestion);
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    res.status(201).json(question);
+  } catch (error) {
+    console.error('質問作成エラー:', error);
+    res.status(500).json({ message: '質問の作成中にエラーが発生しました' });
   }
 };
 
@@ -36,37 +40,13 @@ export const createQuestion = async (req: AuthRequest, res: Response) => {
 // @access  Public
 export const getQuestions = async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 10, sort = '-createdAt', tag, search } = req.query;
-
-    // クエリの構築
-    const query: any = {};
-
-    // タグによるフィルタリング
-    if (tag) {
-      query.tags = tag;
-    }
-
-    // 検索クエリによるフィルタリング
-    if (search) {
-      query.$text = { $search: search as string };
-    }
-
-    const questions = await Question.find(query)
-      .populate('author', 'username')
-      .sort(sort as string)
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
-
-    const total = await Question.countDocuments(query);
-
-    res.json({
-      questions,
-      currentPage: Number(page),
-      totalPages: Math.ceil(total / Number(limit)),
-      total,
-    });
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    const questions = await Question.find()
+      .sort({ createdAt: -1 })
+      .populate('author', 'username');
+    res.json(questions);
+  } catch (error) {
+    console.error('質問一覧取得エラー:', error);
+    res.status(500).json({ message: '質問の取得中にエラーが発生しました' });
   }
 };
 
@@ -75,123 +55,180 @@ export const getQuestions = async (req: Request, res: Response) => {
 // @access  Public
 export const getQuestion = async (req: Request, res: Response) => {
   try {
-    const question = await Question.findById(req.params.id).populate('author', 'username');
+    const question = await Question.findById(req.params.id)
+      .populate('author', 'username')
+      .populate({
+        path: 'answers',
+        populate: { path: 'author', select: 'username' }
+      });
 
     if (!question) {
       return res.status(404).json({ message: '質問が見つかりません' });
     }
 
-    // 閲覧数を増やす
-    question.views = (question.views || 0) + 1;
-    await question.save();
-
     res.json(question);
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
+  } catch (error) {
+    console.error('質問詳細取得エラー:', error);
+    res.status(500).json({ message: '質問の取得中にエラーが発生しました' });
   }
 };
 
-// @desc    質問の更新
+// @desc    質問を更新する
 // @route   PUT /api/questions/:id
 // @access  Private
-export const updateQuestion = async (req: AuthRequest, res: Response) => {
+export const updateQuestion = async (req: Request, res: Response) => {
   try {
-    const question = await Question.findById(req.params.id);
+    const { id } = req.params;
+    const { title, content, tags } = req.body;
 
+    // 質問を検索
+    const question = await Question.findById(id);
     if (!question) {
       return res.status(404).json({ message: '質問が見つかりません' });
     }
 
-    if (!req.user?._id) {
-      return res.status(401).json({ message: '認証が必要です' });
+    // 認証ユーザーのチェック
+    const authReq = req as AuthRequest;
+    if (!authReq.user || !authReq.user.id) {
+      return res.status(401).json({ message: '認証されていません' });
     }
 
-    // 質問の作成者かどうかを確認
-    if (question.author.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ message: 'この操作を実行する権限がありません' });
+    // 質問の作成者であることを確認
+    if (question.author.toString() !== authReq.user.id.toString()) {
+      return res.status(403).json({ message: 'この操作を行う権限がありません' });
     }
 
-    const { title, content, tags } = req.body;
-    
+    // 質問を更新
     question.title = title || question.title;
     question.content = content || question.content;
     question.tags = tags || question.tags;
+    question.updatedAt = new Date();
 
-    const updatedQuestion = await question.save();
-    res.json(updatedQuestion);
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    await question.save();
+    console.log(`質問が更新されました: ID=${question._id}`);
+
+    res.json(question);
+  } catch (error) {
+    console.error('質問更新エラー:', error);
+    res.status(500).json({ message: '質問の更新中にエラーが発生しました' });
   }
 };
 
-// @desc    質問の削除
+// @desc    質問を削除する
 // @route   DELETE /api/questions/:id
 // @access  Private
-export const deleteQuestion = async (req: AuthRequest, res: Response) => {
+export const deleteQuestion = async (req: Request, res: Response) => {
   try {
-    const question = await Question.findById(req.params.id);
+    const { id } = req.params;
 
+    // 質問を検索
+    const question = await Question.findById(id);
     if (!question) {
       return res.status(404).json({ message: '質問が見つかりません' });
     }
 
-    if (!req.user?._id) {
-      return res.status(401).json({ message: '認証が必要です' });
+    // 認証ユーザーのチェック
+    const authReq = req as AuthRequest;
+    if (!authReq.user || !authReq.user.id) {
+      return res.status(401).json({ message: '認証されていません' });
     }
 
-    // 質問の作成者かどうかを確認
-    if (question.author.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ message: 'この操作を実行する権限がありません' });
+    // 質問の作成者であることを確認
+    if (question.author.toString() !== authReq.user.id.toString()) {
+      return res.status(403).json({ message: 'この操作を行う権限がありません' });
     }
 
-    await question.deleteOne();
+    // 質問を削除
+    await Question.deleteOne({ _id: id });
+    console.log(`質問が削除されました: ID=${id}`);
+
+    // 関連する回答も削除
+    await Answer.deleteMany({ question: id });
+    console.log(`質問に関連する回答が削除されました: 質問ID=${id}`);
+
     res.json({ message: '質問が削除されました' });
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
+  } catch (error) {
+    console.error('質問削除エラー:', error);
+    res.status(500).json({ message: '質問の削除中にエラーが発生しました' });
   }
 };
 
-// @desc    質問の評価（いいね/よくないね）
+// @desc    質問に投票する
 // @route   POST /api/questions/:id/vote
 // @access  Private
-export const voteQuestion = async (req: AuthRequest, res: Response) => {
+export const voteQuestion = async (req: Request, res: Response) => {
   try {
-    const { voteType } = req.body; // 'upvote' or 'downvote'
-    const question = await Question.findById(req.params.id);
+    const { id } = req.params;
+    const { voteType } = req.body;
 
+    // 投票タイプのバリデーション
+    if (voteType !== 'upvote' && voteType !== 'downvote') {
+      return res.status(400).json({ message: '無効な投票タイプです' });
+    }
+
+    // 認証ユーザーのチェック
+    const authReq = req as AuthRequest;
+    if (!authReq.user || !authReq.user.id) {
+      return res.status(401).json({ message: '認証されていません' });
+    }
+
+    const userId = new mongoose.Types.ObjectId(authReq.user.id);
+
+    // 質問を検索
+    const question = await Question.findById(id);
     if (!question) {
       return res.status(404).json({ message: '質問が見つかりません' });
     }
 
-    if (!req.user?._id) {
-      return res.status(401).json({ message: '認証が必要です' });
-    }
+    // 既に投票しているかチェック
+    const hasUpvoted = question.upvotes.some(id => id.toString() === userId.toString());
+    const hasDownvoted = question.downvotes.some(id => id.toString() === userId.toString());
 
-    const userId = new mongoose.Types.ObjectId(req.user._id);
-
+    // 投票処理
     if (voteType === 'upvote') {
-      // すでにいいねしている場合は取り消し
-      if (question.upvotes.some(id => id.toString() === userId.toString())) {
+      if (hasUpvoted) {
+        // 既にアップボートしている場合は取り消し
         question.upvotes = question.upvotes.filter(id => id.toString() !== userId.toString());
       } else {
-        // よくないねを取り消し、いいねを追加
-        question.downvotes = question.downvotes.filter(id => id.toString() !== userId.toString());
+        // アップボートを追加
         question.upvotes.push(userId);
+        // ダウンボートを取り消し
+        if (hasDownvoted) {
+          question.downvotes = question.downvotes.filter(id => id.toString() !== userId.toString());
+        }
       }
     } else if (voteType === 'downvote') {
-      // すでによくないねしている場合は取り消し
-      if (question.downvotes.some(id => id.toString() === userId.toString())) {
+      if (hasDownvoted) {
+        // 既にダウンボートしている場合は取り消し
         question.downvotes = question.downvotes.filter(id => id.toString() !== userId.toString());
       } else {
-        // いいねを取り消し、よくないねを追加
-        question.upvotes = question.upvotes.filter(id => id.toString() !== userId.toString());
+        // ダウンボートを追加
         question.downvotes.push(userId);
+        // アップボートを取り消し
+        if (hasUpvoted) {
+          question.upvotes = question.upvotes.filter(id => id.toString() !== userId.toString());
+        }
       }
     }
 
     await question.save();
-    res.json(question);
-  } catch (error: any) {
-    res.status(400).json({ message: error.message });
+    console.log(`質問に対する投票が処理されました: ID=${id}, タイプ=${voteType}, ユーザー=${userId}`);
+
+    // 投票カウントを集計
+    const upvoteCount = question.upvotes.length;
+    const downvoteCount = question.downvotes.length;
+    const voteScore = upvoteCount - downvoteCount;
+
+    res.json({
+      message: '投票が処理されました',
+      voteScore,
+      upvoteCount,
+      downvoteCount,
+      hasUpvoted: question.upvotes.some(id => id.toString() === userId.toString()),
+      hasDownvoted: question.downvotes.some(id => id.toString() === userId.toString()),
+    });
+  } catch (error) {
+    console.error('質問投票エラー:', error);
+    res.status(500).json({ message: '投票処理中にエラーが発生しました' });
   }
 }; 

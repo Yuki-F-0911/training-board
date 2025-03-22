@@ -5,7 +5,6 @@ import {
   createBookmark, 
   deleteBookmark 
 } from '../controllers/bookmarks';
-import { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -13,14 +12,8 @@ const router = express.Router();
 router.use(auth);
 
 // ブックマークのルート
-router.get('/', async (req, res) => {
-  return await getBookmarks(req as AuthRequest, res);
-});
-router.post('/', async (req, res) => {
-  return await createBookmark(req as AuthRequest, res);
-});
-router.delete('/:questionId', async (req, res) => {
-  return await deleteBookmark(req as unknown as AuthRequest, res);
-});
+router.get('/', getBookmarks);
+router.post('/', createBookmark);
+router.delete('/:questionId', deleteBookmark);
 
 export default router; 
