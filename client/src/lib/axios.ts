@@ -3,7 +3,7 @@
 import axios from 'axios';
 
 // 環境変数からAPIのベースURLを取得するか、デフォルト値を使用
-const baseURL = process.env.NEXT_PUBLIC_API_URL || 'https://training-board-server.vercel.app/api';
+const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 console.log('API URL設定:', baseURL);
 
@@ -14,7 +14,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false, // CORSリクエストでCookieを送信しない
+  withCredentials: true, // CORSリクエストでCookieを送信する
 });
 
 // リクエストインターセプター
@@ -26,6 +26,7 @@ api.interceptors.request.use(
       
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log(`トークンを設定しました: ${config.url}`);
       } else {
         console.log(`No token available for request to: ${config.url}`);
       }
@@ -42,6 +43,7 @@ api.interceptors.request.use(
 // レスポンスインターセプター
 api.interceptors.response.use(
   (response) => {
+    console.log(`API成功: ${response.config?.url}`);
     return response;
   },
   (error) => {
@@ -59,8 +61,8 @@ api.interceptors.response.use(
       // 認証関連でないパスの場合にのみログインページへ遷移
       const requestURL = error.config?.url;
       if (requestURL && !requestURL.includes('/auth/')) {
-        if (typeof window !== 'undefined') {
-          // window.location.href = '/login';
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+          // ページ遷移についてはuseAuthに任せるため、ここでは行わない
         }
       }
     }
