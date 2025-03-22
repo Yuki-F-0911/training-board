@@ -18,19 +18,19 @@ import {
   StatNumber,
   StatGroup,
   useToast,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
-import axios from 'axios';
-import apiClient from '../../../lib/axios';
+import api from '../../../lib/axios';
 import QuestionCard from '../../../components/questions/QuestionCard';
 import { useAuth } from '../../../hooks/useAuth';
 
 interface UserProfile {
-  _id: string;
+  id: string;
   username: string;
   email: string;
-  questions: any[];
-  answers: any[];
-  createdAt: string;
+  questions?: any[];
+  answers?: any[];
 }
 
 export default function ProfilePage({
@@ -40,6 +40,7 @@ export default function ProfilePage({
 }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const toast = useToast();
 
@@ -49,14 +50,31 @@ export default function ProfilePage({
 
   const fetchProfile = async () => {
     try {
-      const response = await apiClient.get(
-        `/users/${params.id}`
-      );
-      setProfile(response.data);
+      setLoading(true);
+      setError(null);
+      
+      // 現在ログインしているユーザー自身のプロファイルを表示する場合
+      if (user && user.id === params.id) {
+        console.log('現在のユーザープロファイルを表示します');
+        const response = await api.get('/auth/me');
+        setProfile({
+          id: response.data.user.id,
+          username: response.data.user.username,
+          email: response.data.user.email,
+          // 質問と回答の情報は別途取得する必要がある
+          questions: [],
+          answers: []
+        });
+      } else {
+        // 他のユーザーのプロファイルを表示する場合（現在は実装されていない）
+        setError('他のユーザーのプロファイル表示は現在対応していません');
+      }
     } catch (error) {
+      console.error('プロファイル取得エラー:', error);
+      setError('プロファイルの取得に失敗しました');
       toast({
         title: 'エラー',
-        description: 'プロフィールの取得に失敗しました',
+        description: 'プロファイルの取得に失敗しました',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -66,8 +84,34 @@ export default function ProfilePage({
     }
   };
 
+  if (loading) {
+    return (
+      <Container maxW="container.lg" py={8}>
+        <Text>読み込み中...</Text>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="container.lg" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
   if (!profile) {
-    return null;
+    return (
+      <Container maxW="container.lg" py={8}>
+        <Alert status="warning">
+          <AlertIcon />
+          プロファイルが見つかりませんでした
+        </Alert>
+      </Container>
+    );
   }
 
   return (
@@ -76,7 +120,7 @@ export default function ProfilePage({
         <VStack spacing={4} align="center">
           <Avatar size="2xl" name={profile.username} />
           <Heading size="lg">{profile.username}</Heading>
-          {user?.id === profile._id && (
+          {user?.id === profile.id && (
             <Text color="gray.500">{profile.email}</Text>
           )}
         </VStack>
@@ -85,11 +129,11 @@ export default function ProfilePage({
       <StatGroup mb={8}>
         <Stat>
           <StatLabel>質問</StatLabel>
-          <StatNumber>{profile.questions.length}</StatNumber>
+          <StatNumber>{profile.questions?.length || 0}</StatNumber>
         </Stat>
         <Stat>
           <StatLabel>回答</StatLabel>
-          <StatNumber>{profile.answers.length}</StatNumber>
+          <StatNumber>{profile.answers?.length || 0}</StatNumber>
         </Stat>
       </StatGroup>
 
@@ -102,30 +146,38 @@ export default function ProfilePage({
         <TabPanels>
           <TabPanel>
             <VStack spacing={4} align="stretch">
-              {profile.questions.map((question) => (
-                <QuestionCard 
-                  key={question._id} 
-                  question={question} 
-                  onBookmarkToggle={() => {}} 
-                />
-              ))}
+              {profile.questions && profile.questions.length > 0 ? (
+                profile.questions.map((question) => (
+                  <QuestionCard 
+                    key={question.id} 
+                    question={question} 
+                    onBookmarkToggle={() => {}} 
+                  />
+                ))
+              ) : (
+                <Text>質問はまだありません</Text>
+              )}
             </VStack>
           </TabPanel>
           <TabPanel>
             <VStack spacing={4} align="stretch">
-              {profile.answers.map((answer) => (
-                <Box
-                  key={answer._id}
-                  p={5}
-                  borderWidth="1px"
-                  borderRadius="lg"
-                >
-                  <Text fontSize="sm" color="gray.500" mb={2}>
-                    回答先: {answer.question.title}
-                  </Text>
-                  <Text>{answer.content}</Text>
-                </Box>
-              ))}
+              {profile.answers && profile.answers.length > 0 ? (
+                profile.answers.map((answer) => (
+                  <Box
+                    key={answer.id}
+                    p={5}
+                    borderWidth="1px"
+                    borderRadius="lg"
+                  >
+                    <Text fontSize="sm" color="gray.500" mb={2}>
+                      回答先: {answer.question?.title || '不明な質問'}
+                    </Text>
+                    <Text>{answer.content}</Text>
+                  </Box>
+                ))
+              ) : (
+                <Text>回答はまだありません</Text>
+              )}
             </VStack>
           </TabPanel>
         </TabPanels>
