@@ -1,6 +1,6 @@
 import express from 'express';
 import { registerUser, loginUser, getCurrentUser } from '../controllers/auth';
-import { auth } from '../middleware/auth';
+import { auth, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
@@ -17,6 +17,8 @@ router.post('/login', loginUser);
 // @route   GET /api/auth/me
 // @desc    現在のユーザー情報を取得
 // @access  Private
-router.get('/me', auth, getCurrentUser);
+router.get('/me', auth, async (req, res) => {
+  return await getCurrentUser(req as AuthRequest, res);
+});
 
 export default router; 

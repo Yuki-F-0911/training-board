@@ -1,24 +1,30 @@
 import express from 'express';
 import {
-  createAnswer,
   getAnswers,
+  getAnswerById,
+  createAnswer,
   updateAnswer,
   deleteAnswer,
   voteAnswer,
-  acceptAnswer,
 } from '../controllers/answers';
-import { protect } from '../middleware/auth';
+import { auth } from '../middleware/auth';
 
 const router = express.Router({ mergeParams: true });
 
-// 公開ルート
+// 回答を取得
 router.get('/', getAnswers);
+router.get('/:id', getAnswerById);
 
-// 保護されたルート
-router.post('/', protect, createAnswer);
-router.put('/:id', protect, updateAnswer);
-router.delete('/:id', protect, deleteAnswer);
-router.post('/:id/vote', protect, voteAnswer);
-router.post('/:id/accept', protect, acceptAnswer);
+// 回答を作成
+router.post('/', auth, createAnswer);
+
+// 回答を更新
+router.put('/:id', auth, updateAnswer);
+
+// 回答を削除
+router.delete('/:id', auth, deleteAnswer);
+
+// 回答の投票
+router.post('/:id/vote', auth, voteAnswer);
 
 export default router; 

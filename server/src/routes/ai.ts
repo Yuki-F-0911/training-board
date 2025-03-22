@@ -1,15 +1,13 @@
 import express from 'express';
-import {
-  generateQuestion,
-  generateAnswer,
-  evaluateAnswer,
-} from '../controllers/ai';
-import { protect } from '../middleware/auth';
+import { auth } from '../middleware/auth';
+import { generateAnswer, evaluateAnswer } from '../controllers/ai';
 
 const router = express.Router();
 
-router.post('/generate-question', protect, generateQuestion);
-router.post('/generate-answer/:questionId', protect, generateAnswer);
-router.post('/evaluate-answer/:answerId', protect, evaluateAnswer);
+// AIに回答を生成させる
+router.post('/answers/generate', auth, generateAnswer);
+
+// AIの回答を評価する
+router.post('/answers/evaluate/:answerId', auth, evaluateAnswer);
 
 export default router; 

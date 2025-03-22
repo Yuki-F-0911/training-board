@@ -73,6 +73,23 @@ export const getAnswers = async (req: Request, res: Response) => {
   }
 };
 
+export const getAnswerById = async (req: Request, res: Response) => {
+  try {
+    const answer = await Answer.findById(req.params.id)
+      .populate('author', 'name avatar')
+      .populate('votes.user', 'name');
+      
+    if (!answer) {
+      return res.status(404).json({ message: '回答が見つかりません' });
+    }
+    
+    res.status(200).json(answer);
+  } catch (error) {
+    console.error('回答取得エラー:', error);
+    res.status(500).json({ message: 'サーバーエラーが発生しました' });
+  }
+};
+
 // @desc    回答の更新
 // @route   PUT /api/answers/:id
 // @access  Private

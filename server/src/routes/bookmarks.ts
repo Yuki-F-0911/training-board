@@ -1,19 +1,26 @@
 import express from 'express';
-import { protect } from '../middleware/auth';
+import { auth } from '../middleware/auth';
 import { 
   getBookmarks, 
   createBookmark, 
   deleteBookmark 
 } from '../controllers/bookmarks';
+import { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
-// すべてのルートに認証が必要
-router.use(protect as express.RequestHandler);
+// すべてのルートに認証ミドルウェアを適用
+router.use(auth);
 
 // ブックマークのルート
-router.get('/', getBookmarks as express.RequestHandler);
-router.post('/', createBookmark as express.RequestHandler);
-router.delete('/:questionId', deleteBookmark as express.RequestHandler);
+router.get('/', async (req, res) => {
+  return await getBookmarks(req as AuthRequest, res);
+});
+router.post('/', async (req, res) => {
+  return await createBookmark(req as AuthRequest, res);
+});
+router.delete('/:questionId', async (req, res) => {
+  return await deleteBookmark(req as unknown as AuthRequest, res);
+});
 
 export default router; 

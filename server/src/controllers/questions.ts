@@ -1,12 +1,8 @@
 import { Request, Response } from 'express';
 import { Question } from '../models/Question';
 import mongoose from 'mongoose';
+import { AuthRequest } from '../middleware/auth';
 
-interface AuthRequest extends Request {
-  user?: {
-    _id: string;
-  };
-}
 
 // @desc    質問の作成
 // @route   POST /api/questions

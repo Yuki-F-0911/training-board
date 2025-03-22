@@ -46,7 +46,16 @@ app.use((err: any, req: any, res: any, next: any) => {
 
 // ルートパスのハンドラー
 app.get('/', (req, res) => {
-  res.json({ message: 'トレーニング掲示板APIサーバーが正常に動作しています' });
+  try {
+    res.json({ message: 'トレーニング掲示板APIサーバーが正常に動作しています' });
+  } catch (error: unknown) {
+    console.error('ルートエンドポイントエラー:', error);
+    const errorMessage = error instanceof Error ? error.message : '不明なエラー';
+    res.status(500).json({ 
+      message: 'エラーが発生しました', 
+      error: process.env.NODE_ENV === 'production' ? '詳細はサーバーログを確認してください' : errorMessage
+    });
+  }
 });
 
 // ヘルスチェックエンドポイント
