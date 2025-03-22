@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { Bookmark } from '../models/Bookmark';
+import { Bookmark } from '../models/bookmark';
 import { Question } from '../models/Question';
 import { AuthRequest } from '../middleware/auth';
 
