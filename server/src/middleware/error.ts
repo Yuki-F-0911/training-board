@@ -1,39 +1,41 @@
 import { Request, Response, NextFunction } from 'express';
 
-interface ErrorResponse extends Error {
+interface CustomError extends Error {
   statusCode?: number;
-  code?: number;
+  code?: number | string;
 }
 
 export const errorHandler = (
-  err: ErrorResponse,
-  req: Request,
-  res: Response,
+  err: CustomError, 
+  req: Request, 
+  res: Response, 
   next: NextFunction
 ) => {
-  let error = { ...err };
-  error.message = err.message;
-
-  // MongoDBのIDエラー
-  if (err.name === 'CastError') {
-    error.message = '無効なIDです';
-    error.statusCode = 400;
+  console.error('エラーハンドラーが呼び出されました：');
+  console.error('エラーメッセージ:', err.message);
+  console.error('エラーコード:', err.code || 'なし');
+  console.error('リクエストパス:', req.path);
+  console.error('リクエストメソッド:', req.method);
+  
+  // スタックトレースを表示（開発環境のみ）
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('スタックトレース:', err.stack);
   }
 
-  // 重複キーエラー
+  // MongoDBの重複キーエラー
   if (err.code === 11000) {
-    error.message = 'この値は既に使用されています';
-    error.statusCode = 400;
+    const field = Object.keys(err as any)[0];
+    return res.status(400).json({
+      success: false,
+      message: `この${field}は既に使用されています`
+    });
   }
 
-  // バリデーションエラー
-  if (err.name === 'ValidationError') {
-    error.message = Object.values(err).map((val: any) => val.message).join(', ');
-    error.statusCode = 400;
-  }
-
-  res.status(error.statusCode || 500).json({
+  // レスポンスを返す
+  res.status(err.statusCode || 500).json({
     success: false,
-    error: error.message || 'サーバーエラーが発生しました',
+    message: err.message || 'サーバーエラーが発生しました',
+    // 開発環境では詳細なエラー情報を返す
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
   });
 }; 

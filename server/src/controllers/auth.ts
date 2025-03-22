@@ -102,30 +102,31 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
-// @desc    現在のユーザー情報の取得
 // @route   GET /api/auth/me
+// @desc    現在のユーザー情報を取得
 // @access  Private
 export const getCurrentUser = async (req: AuthRequest, res: Response) => {
   try {
+    console.log('現在のユーザー情報取得を開始:', req.path);
+    
+    // ユーザーオブジェクトの存在チェック
+    if (!req.user) {
+      console.log('ユーザー情報なし - 認証が必要です');
+      return res.status(401).json({ message: '認証が必要です' });
+    }
+
     const user = await User.findById(req.user.id).select('-password');
     
     if (!user) {
+      console.log('ユーザーが見つかりません - ID:', req.user.id);
       return res.status(404).json({ message: 'ユーザーが見つかりません' });
     }
-    
-    console.log(`現在のユーザー情報取得: ID: ${user._id}`);
-    
-    res.json({
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-      }
-    });
-  } catch (error: unknown) {
-    console.error('現在のユーザー情報取得エラー:', error);
-    const errorMessage = error instanceof Error ? error.message : '不明なエラー';
-    res.status(500).json({ message: 'ユーザー情報の取得中にエラーが発生しました', error: errorMessage });
+
+    console.log('ユーザー情報を取得しました:', user._id);
+    res.json(user);
+  } catch (error) {
+    console.error('ユーザー情報取得エラー:', error);
+    res.status(500).json({ message: 'サーバーエラー' });
   }
 };
 

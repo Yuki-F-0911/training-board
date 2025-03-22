@@ -13,68 +13,81 @@ import { startAutoPostJob } from './jobs/autoPost';
 // Load environment variables
 dotenv.config();
 
-// Connect to MongoDB
-try {
-  console.log('データベース接続を開始します: ', process.env.MONGODB_URI);
-  connectDB();
-  console.log('データベース接続が成功しました');
-} catch (error: unknown) {
-  console.error('データベース接続の初期化に失敗しました:', error);
-}
-
-// Create Express app
+// アプリケーションインスタンスをグローバルに定義
 const app = express();
 
-// CORS設定 - 完全に緩める
-app.use(function(req, res, next) {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
-  // プリフライトリクエストへの対応
-  if (req.method === 'OPTIONS') {
-    console.log('プリフライトリクエスト検出:', req.headers.origin);
-    return res.status(200).end();
-  }
-
-  next();
-});
-
-// Content-Type設定
-app.use(express.json());
-
-// favicon.icoへのリクエストを処理
-app.get('/favicon.ico', (req, res) => {
-  console.log('Favicon.icoリクエスト受信');
-  res.status(204).end(); // 204 No Content
-});
-
-// エラーハンドリングのミドルウェア - 非同期エラー向け
-app.use((err: any, req: any, res: any, next: any) => {
-  console.error('エラーハンドリングミドルウェア:', err);
-  res.status(500).json({ 
-    message: 'サーバーエラーが発生しました', 
-    error: process.env.NODE_ENV === 'production' ? '詳細はサーバーログを確認してください' : err.message
+// Connect to MongoDB
+console.log('データベース接続を開始します: ', process.env.MONGODB_URI);
+connectDB()
+  .then(() => {
+    console.log('データベース接続が成功しました');
+    setupServer();
+  })
+  .catch((error: unknown) => {
+    console.error('データベース接続の初期化に失敗しました:', error);
+    process.exit(1);
   });
-});
 
-// ルートパスのハンドラー
-app.get('/', (req, res) => {
-  try {
+function setupServer() {
+  // リクエストログ
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
+
+  // CORS設定 - 完全に緩める
+  app.use(function(req, res, next) {
+    const origin = req.headers.origin || '*';
+    console.log(`CORSリクエスト: Origin=${origin}, Path=${req.path}, Method=${req.method}`);
+    
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+    // プリフライトリクエストへの対応
+    if (req.method === 'OPTIONS') {
+      console.log('プリフライトリクエスト検出:', origin);
+      return res.status(200).end();
+    }
+
+    next();
+  });
+
+  // Content-Type設定
+  app.use(express.json());
+
+  // favicon.icoへのリクエストを処理
+  app.get('/favicon.ico', (req, res) => {
+    console.log('Favicon.icoリクエスト受信');
+    res.status(204).end(); // 204 No Content
+  });
+
+  // ルート
+  app.use('/api/auth', authRoutes);
+  app.use('/api/questions', questionRoutes);
+  app.use('/api/bookmarks', bookmarkRoutes);
+  app.use('/api/ai', aiRoutes);
+
+  // ルートパスのハンドラー
+  app.get('/', (req, res) => {
     res.json({ message: 'トレーニング掲示板APIサーバーが正常に動作しています' });
-  } catch (error: unknown) {
-    console.error('ルートエンドポイントエラー:', error);
-    const errorMessage = error instanceof Error ? error.message : '不明なエラー';
-    res.status(500).json({ 
-      message: 'エラーが発生しました', 
-      error: process.env.NODE_ENV === 'production' ? '詳細はサーバーログを確認してください' : errorMessage
-    });
-  }
-});
+  });
 
-// ヘルスチェックエンドポイント
-app.get('/health', (req, res) => {
-  try {
+  // APIパスのハンドラー - デバッグ用
+  app.get('/api', (req, res) => {
+    res.json({ 
+      message: 'APIルートが正常に動作しています',
+      endpoints: {
+        auth: '/api/auth',
+        questions: '/api/questions',
+        bookmarks: '/api/bookmarks',
+        ai: '/api/ai'
+      }
+    });
+  });
+
+  // ヘルスチェックエンドポイント
+  app.get('/health', (req, res) => {
     const dbState = mongoose.connection.readyState;
     const dbStatus: Record<number, string> = {
       0: '切断済み',
@@ -87,70 +100,50 @@ app.get('/health', (req, res) => {
       timestamp: new Date().toISOString(),
       db: dbStatus[dbState] || '不明'
     });
-  } catch (error: unknown) {
-    console.error('ヘルスチェックエラー:', error);
-    const errorMessage = error instanceof Error ? error.message : '不明なエラー';
-    res.status(500).json({ 
-      status: 'error', 
-      message: 'ヘルスチェック中にエラーが発生しました',
-      error: process.env.NODE_ENV === 'production' ? '詳細はサーバーログを確認してください' : errorMessage
+  });
+
+  // 404ハンドラー - 一致するルートがない場合
+  app.use((req, res) => {
+    console.log(`404エラー: パス ${req.path} が見つかりません`);
+    res.status(404).json({ 
+      message: 'リクエストされたリソースが見つかりません',
+      path: req.path,
+      method: req.method
     });
-  }
-});
+  });
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/questions', questionRoutes);
-app.use('/api/bookmarks', bookmarkRoutes);
-app.use('/api/ai', aiRoutes);
+  // エラーハンドラー
+  app.use(errorHandler);
 
-// データベース接続
-try {
-  console.log('MongoDBに接続しています...');
-  mongoose
-    .connect(process.env.MONGODB_URI as string)
-    .then(() => {
-      console.log('データベースに接続しました');
-      
-      // AIユーザーの作成または取得
-      const User = mongoose.model('User');
-      User.findOneAndUpdate(
-        { email: 'ai@training-board.com' },
-        {
-          username: 'AI Assistant',
-          email: 'ai@training-board.com',
-          password: require('crypto').randomBytes(32).toString('hex'),
-        },
-        { upsert: true, new: true }
-      ).then((aiUser) => {
-        console.log('AIユーザーを準備しました');
-        // 自動投稿ジョブを開始
-        startAutoPostJob().catch(error => {
-          console.error('自動投稿ジョブエラー:', error);
-        });
-      }).catch(error => {
-        console.error('AIユーザー作成エラー:', error);
+  // AIユーザーの作成または取得
+  try {
+    const User = mongoose.model('User');
+    User.findOneAndUpdate(
+      { email: 'ai@training-board.com' },
+      {
+        username: 'AI Assistant',
+        email: 'ai@training-board.com',
+        password: require('crypto').randomBytes(32).toString('hex'),
+      },
+      { upsert: true, new: true }
+    ).then((aiUser) => {
+      console.log('AIユーザーを準備しました');
+      // 自動投稿ジョブを開始
+      startAutoPostJob().catch(error => {
+        console.error('自動投稿ジョブエラー:', error);
       });
-    })
-    .catch((error) => {
-      console.error('データベース接続エラー:', error);
+    }).catch(error => {
+      console.error('AIユーザー作成エラー:', error);
     });
-} catch (error: unknown) {
-  console.error('MongoDBの接続処理で例外が発生しました:', error);
-}
+  } catch (error) {
+    console.error('AIユーザー作成中に例外が発生しました:', error);
+  }
 
-// Error handler
-app.use(errorHandler);
-
-// Start server
-const PORT = process.env.PORT || 5000;
-
-try {
+  // サーバー起動
+  const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`サーバーが起動しました: http://localhost:${PORT}`);
   });
-} catch (error: unknown) {
-  console.error('サーバー起動エラー:', error);
-} 
+}
 
 export default app; 
