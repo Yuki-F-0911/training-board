@@ -25,15 +25,30 @@ try {
 // Create Express app
 const app = express();
 
-// CORS設定 - シンプルなCORS設定に戻す
+// CORS設定 - すべてのオリジンを許可する
 app.use(cors({
-  origin: [
-    'https://training-board-client2.vercel.app',
-    'https://training-board-client.vercel.app',
-    'https://training-board-esqa6ufxt-yuk-futamis-projects.vercel.app',
-    'https://training-board.vercel.app',
-    'http://localhost:3000'
-  ],
+  origin: function(origin, callback) {
+    // オリジンなし（同一オリジン）またはVercel開発環境からのリクエストを許可
+    const allowedOrigins = [
+      'https://training-board-client2.vercel.app',
+      'https://training-board-client.vercel.app',
+      'https://training-board.vercel.app',
+      'https://training-board-esqa6ufxt-yuk-futamis-projects.vercel.app',
+      'http://localhost:3000'
+    ];
+    
+    console.log('CORS要求オリジン:', origin);
+    
+    // originがnull（同一オリジン）の場合や許可リストにある場合は許可
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      // 開発中は全てのオリジンを許可するオプション
+      callback(null, true);
+      // 本番環境では制限を厳しくする場合:
+      // callback(new Error('CORS policy violation'), false);
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
