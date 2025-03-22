@@ -25,7 +25,7 @@ try {
 // Create Express app
 const app = express();
 
-// CORS設定 - クレデンシャル付きリクエストのための設定
+// CORS設定 - シンプルなCORS設定に戻す
 app.use(cors({
   origin: [
     'https://training-board-client2.vercel.app',
@@ -34,7 +34,6 @@ app.use(cors({
     'https://training-board.vercel.app',
     'http://localhost:3000'
   ],
-  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));

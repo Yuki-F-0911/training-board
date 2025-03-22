@@ -8,7 +8,8 @@ console.log('API URL設定:', API_URL);
 
 const apiClient = axios.create({
   baseURL: API_URL,
-  withCredentials: true, // CORS認証のためにクレデンシャルを含める
+  // CORSリクエストでクレデンシャルを送信しない設定に変更
+  withCredentials: false,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,12 +18,17 @@ const apiClient = axios.create({
 // リクエストインターセプター - ヘッダーにトークンを追加
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('リクエストにトークンを追加:', config.url);
-    } else {
-      console.log(`No token available for request to: ${config.url}`);
+    try {
+      const token = localStorage.getItem('token');
+      if (token && config.headers) {
+        // Bearerスキーマを使用してAuthorizationヘッダーを設定
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log('認証ヘッダー設定:', config.url);
+      } else {
+        console.log(`No token available for request to: ${config.url}`);
+      }
+    } catch (error) {
+      console.error('トークン設定エラー:', error);
     }
     return config;
   },
